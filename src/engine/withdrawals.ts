@@ -71,11 +71,14 @@ export function generateWithdrawalPlan(
     const year = new Date().getFullYear() + i;
     const age = persona.age + i;
 
-    // Net withdrawal need: expenses minus any income at this year
+    // Net withdrawal need: expenses minus life-event income only.
+    // Base annualIncome (working income) is excluded — this models retirement.
     let remaining: number;
     if (hasEvents) {
       const { annualIncome, annualExpenses } = resolveFinancialsAtYear(persona, i);
-      remaining = Math.max(0, annualExpenses - annualIncome);
+      // Subtract base working income to get only life-event income
+      const retirementIncome = annualIncome - persona.annualIncome;
+      remaining = Math.max(0, annualExpenses - retirementIncome);
     } else {
       remaining = baseExpenses;
     }
