@@ -1,7 +1,7 @@
-import type { PersonaTemplate } from "@/types";
+import { ArrowRight } from "lucide-react";
 import { calculatePortfolioTotal } from "@/engine/fire";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowRight } from "lucide-react";
+import type { PersonaTemplate } from "@/types";
 
 type PersonaCardProps = {
 	persona: PersonaTemplate;

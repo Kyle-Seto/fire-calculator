@@ -1,14 +1,14 @@
+import { AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { useFireStore } from "@/store/useFireStore";
-import { formatCurrency, formatFireDate, formatPercent, cn } from "@/lib/utils";
-import { MetricCard, MetricSkeleton } from "./MetricCard";
+import { AccountBreakdown } from "@/components/charts/AccountBreakdown";
 import { PortfolioFanChart } from "@/components/charts/PortfolioFanChart";
 import { SavingsRateChart } from "@/components/charts/SavingsRateChart";
-import { AccountBreakdown } from "@/components/charts/AccountBreakdown";
-import { ScenarioPanel } from "@/components/scenarios/ScenarioPanel";
 import { PostFireDashboard } from "@/components/postfire/PostFireDashboard";
+import { ScenarioPanel } from "@/components/scenarios/ScenarioPanel";
 import { FireTooltip } from "@/components/ui/FireTooltip";
-import { AlertCircle } from "lucide-react";
+import { cn, formatCurrency, formatFireDate, formatPercent } from "@/lib/utils";
+import { useFireStore } from "@/store/useFireStore";
+import { MetricCard, MetricSkeleton } from "./MetricCard";
 
 type Tab = "overview" | "whatif" | "details";
 
@@ -65,13 +65,10 @@ export function ResultsPanel() {
 	return (
 		<div className="flex-1 p-6 md:p-10 overflow-y-auto">
 			<div className="max-w-2xl mx-auto space-y-6">
-
 				{/* ── Baseline Summary (always visible) ── */}
 				<div className="bg-white rounded-xl border border-[#E5E5E5] p-6 animate-fade-in relative overflow-hidden">
-					<p className="text-xs text-[#9B9B9B] font-medium mb-4">
-						Your current plan
-					</p>
-						<div className="flex flex-wrap items-baseline gap-x-10 gap-y-3">
+					<p className="text-xs text-[#9B9B9B] font-medium mb-4">Your current plan</p>
+					<div className="flex flex-wrap items-baseline gap-x-10 gap-y-3">
 						{isRetired ? (
 							<>
 								<div>
@@ -208,25 +205,15 @@ export function ResultsPanel() {
 						{/* Portfolio Fan Chart — the hero visualization */}
 						{mc && (
 							<div className="space-y-3">
-								<span className="text-xs text-[#9B9B9B] font-medium">
-									Portfolio Projections
-								</span>
-								<PortfolioFanChart
-									monteCarloResults={mc}
-									fireNumber={results.fireNumber}
-								/>
+								<span className="text-xs text-[#9B9B9B] font-medium">Portfolio Projections</span>
+								<PortfolioFanChart monteCarloResults={mc} fireNumber={results.fireNumber} />
 							</div>
 						)}
 
 						{/* Asset Breakdown */}
 						<div className="space-y-3">
-							<span className="text-xs text-[#9B9B9B] font-medium">
-								Asset Breakdown
-							</span>
-							<AccountBreakdown
-								assets={persona.assets}
-								portfolioTotal={results.portfolioTotal}
-							/>
+							<span className="text-xs text-[#9B9B9B] font-medium">Asset Breakdown</span>
+							<AccountBreakdown assets={persona.assets} portfolioTotal={results.portfolioTotal} />
 						</div>
 
 						{/* Post-FIRE tools */}
@@ -235,9 +222,7 @@ export function ResultsPanel() {
 						{/* RESP section */}
 						{persona.resp && (
 							<div className="bg-white rounded-xl border border-[#E5E5E5] p-5 space-y-3">
-								<h3 className="text-xs text-[#9B9B9B] font-medium">
-									Education savings (RESP)
-								</h3>
+								<h3 className="text-xs text-[#9B9B9B] font-medium">Education savings (RESP)</h3>
 								<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 									<div>
 										<p className="text-xs text-[#9B9B9B]">Balance</p>
@@ -303,10 +288,7 @@ export function ResultsPanel() {
 										value={formatCurrency(results.monthlyExpenses)}
 									/>
 									{persona.cashCushion !== undefined && (
-										<MetricCard
-											label="Cash Cushion"
-											value={formatCurrency(persona.cashCushion)}
-										/>
+										<MetricCard label="Cash Cushion" value={formatCurrency(persona.cashCushion)} />
 									)}
 								</>
 							) : (
@@ -374,9 +356,7 @@ export function ResultsPanel() {
 										<p className="text-sm font-medium text-[#1A1A1A] tabular-nums">
 											{formatCurrency(results.portfolioTotal - results.afterTaxPortfolioValue)}
 										</p>
-										<p className="text-xs text-[#9B9B9B]">
-											Lost to taxes on withdrawal
-										</p>
+										<p className="text-xs text-[#9B9B9B]">Lost to taxes on withdrawal</p>
 									</div>
 								</div>
 							</div>
@@ -398,7 +378,7 @@ export function ResultsPanel() {
 					</div>
 				)}
 
-	{/* intentionally empty — recalculating indicator is in DashboardLayout */}
+				{/* intentionally empty — recalculating indicator is in DashboardLayout */}
 			</div>
 		</div>
 	);

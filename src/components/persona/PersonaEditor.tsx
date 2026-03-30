@@ -1,9 +1,9 @@
+import { ArrowLeft, ChevronDown, Plus, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
+import CurrencyInput from "react-currency-input-field";
+import { cn } from "@/lib/utils";
 import { useFireStore } from "@/store/useFireStore";
 import type { Asset, AssetType, Liability, LifeEvent, Persona, RESPAccount } from "@/types";
-import CurrencyInput from "react-currency-input-field";
-import { ArrowLeft, ChevronDown, Plus, RotateCcw, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type PersonaEditorProps = {
 	onBack: () => void;
@@ -103,7 +103,13 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 		updatePersona({
 			liabilities: [
 				...persona.liabilities,
-				{ id: crypto.randomUUID(), label: "", balance: 0 },
+				{
+					id: crypto.randomUUID(),
+					label: "",
+					balance: 0,
+					interestRate: undefined,
+					minimumPayment: undefined,
+				},
 			],
 		});
 	}
@@ -176,10 +182,10 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 
 			<div className="flex-1 overflow-y-auto">
 				<div className="px-5 py-4 border-b border-[#E5E5E5]">
-					<p className="text-xs text-[#9B9B9B] font-medium mb-1">
-						Editing
+					<p className="text-xs text-[#9B9B9B] font-medium mb-1">Editing</p>
+					<p className="font-[family-name:var(--font-display)] text-lg text-[#1A1A1A]">
+						{persona.name}
 					</p>
-					<p className="font-[family-name:var(--font-display)] text-lg text-[#1A1A1A]">{persona.name}</p>
 				</div>
 
 				{/* ── Basics: Age + Income + Spending + Housing (always important) ── */}
@@ -197,9 +203,7 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 								min={18}
 								max={100}
 								value={persona.age}
-								onChange={(e) =>
-									updatePersona({ age: Number.parseInt(e.target.value) || 18 })
-								}
+								onChange={(e) => updatePersona({ age: Number.parseInt(e.target.value, 10) || 18 })}
 								className="field-input"
 							/>
 						</Field>
@@ -266,7 +270,11 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 				<AccordionSection
 					id="liabilities"
 					title="Liabilities"
-					subtitle={persona.liabilities.length > 0 ? `${persona.liabilities.length} debt${persona.liabilities.length !== 1 ? "s" : ""}` : "None"}
+					subtitle={
+						persona.liabilities.length > 0
+							? `${persona.liabilities.length} debt${persona.liabilities.length !== 1 ? "s" : ""}`
+							: "None"
+					}
 					isOpen={openSections.has("liabilities")}
 					onToggle={toggleSection}
 				>
@@ -294,7 +302,9 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 				<AccordionSection
 					id="events"
 					title="Life Events"
-					subtitle={events.length > 0 ? `${events.length} event${events.length !== 1 ? "s" : ""}` : "None"}
+					subtitle={
+						events.length > 0 ? `${events.length} event${events.length !== 1 ? "s" : ""}` : "None"
+					}
 					isOpen={openSections.has("events")}
 					onToggle={toggleSection}
 				>
@@ -330,9 +340,7 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 						<div className="space-y-2">
 							<RESPEditor
 								resp={persona.resp}
-								onUpdate={(updates) =>
-									updatePersona({ resp: { ...persona.resp!, ...updates } })
-								}
+								onUpdate={(updates) => updatePersona({ resp: { ...persona.resp!, ...updates } })}
 							/>
 							<button
 								type="button"
@@ -394,12 +402,8 @@ function AccordionSection({
 				className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#F7F7F0]/50 transition-colors"
 			>
 				<div className="flex items-baseline gap-2">
-					<span className="text-sm font-medium text-[#1A1A1A]">
-						{title}
-					</span>
-					{subtitle && !isOpen && (
-						<span className="text-xs text-[#9B9B9B]">{subtitle}</span>
-					)}
+					<span className="text-sm font-medium text-[#1A1A1A]">{title}</span>
+					{subtitle && !isOpen && <span className="text-xs text-[#9B9B9B]">{subtitle}</span>}
 				</div>
 				<ChevronDown
 					className={cn(
@@ -408,14 +412,9 @@ function AccordionSection({
 					)}
 				/>
 			</button>
-			<div
-				className="collapse-section"
-				data-open={isOpen}
-			>
+			<div className="collapse-section" data-open={isOpen}>
 				<div>
-					<div className="px-5 pb-4">
-						{children}
-					</div>
+					<div className="px-5 pb-4">{children}</div>
 				</div>
 			</div>
 		</div>
@@ -448,7 +447,9 @@ function AssetCard({
 				className="text-xs bg-transparent border border-slate-200 rounded px-1 py-0.5 text-slate-500 w-24"
 			>
 				{ASSET_TYPE_OPTIONS.map((opt) => (
-					<option key={opt.value} value={opt.value}>{opt.label}</option>
+					<option key={opt.value} value={opt.value}>
+						{opt.label}
+					</option>
 				))}
 			</select>
 			<CurrencyInput
@@ -480,30 +481,66 @@ function LiabilityCard({
 	onRemove: () => void;
 }) {
 	return (
-		<div className="flex items-center gap-2 group">
-			<span className="w-2 h-2 rounded-full shrink-0 bg-red-400" />
-			<input
-				type="text"
-				value={liability.label}
-				onChange={(e) => onUpdate({ label: e.target.value })}
-				placeholder="e.g., Mortgage"
-				className="flex-1 min-w-0 text-sm text-slate-700 bg-transparent border-none outline-none placeholder:text-slate-300"
-			/>
-			<CurrencyInput
-				prefix="$"
-				decimalsLimit={0}
-				groupSeparator=","
-				value={liability.balance}
-				onValueChange={(v) => onUpdate({ balance: v ? Number.parseFloat(v) : 0 })}
-				className="w-28 text-right text-sm bg-transparent border border-slate-200 rounded px-1.5 py-0.5 text-slate-700"
-			/>
-			<button
-				type="button"
-				onClick={onRemove}
-				className="text-slate-300 hover:text-slate-500 transition-colors opacity-0 group-hover:opacity-100"
-			>
-				<X className="w-3.5 h-3.5" />
-			</button>
+		<div className="space-y-1.5 group">
+			<div className="flex items-center gap-2">
+				<span className="w-2 h-2 rounded-full shrink-0 bg-red-400" />
+				<input
+					type="text"
+					value={liability.label}
+					onChange={(e) => onUpdate({ label: e.target.value })}
+					placeholder="e.g., Mortgage"
+					className="flex-1 min-w-0 text-sm text-slate-700 bg-transparent border-none outline-none placeholder:text-slate-300"
+				/>
+				<CurrencyInput
+					prefix="$"
+					decimalsLimit={0}
+					groupSeparator=","
+					value={liability.balance}
+					onValueChange={(v) => onUpdate({ balance: v ? Number.parseFloat(v) : 0 })}
+					className="w-28 text-right text-sm bg-transparent border border-slate-200 rounded px-1.5 py-0.5 text-slate-700"
+				/>
+				<button
+					type="button"
+					onClick={onRemove}
+					className="text-slate-300 hover:text-slate-500 transition-colors opacity-0 group-hover:opacity-100"
+				>
+					<X className="w-3.5 h-3.5" />
+				</button>
+			</div>
+			<div className="flex items-center gap-3 pl-4">
+				<div className="flex items-center gap-1">
+					<input
+						type="number"
+						step="0.1"
+						min="0"
+						max="30"
+						value={
+							liability.interestRate !== undefined ? (liability.interestRate * 100).toFixed(1) : ""
+						}
+						onChange={(e) => {
+							const val = e.target.value;
+							onUpdate({ interestRate: val ? Number.parseFloat(val) / 100 : undefined });
+						}}
+						placeholder="0.0"
+						className="w-14 text-right text-xs bg-transparent border border-slate-200 rounded px-1 py-0.5 text-slate-600 placeholder:text-slate-300"
+					/>
+					<span className="text-xs text-slate-400">% rate</span>
+				</div>
+				<div className="flex items-center gap-1">
+					<CurrencyInput
+						prefix="$"
+						decimalsLimit={0}
+						groupSeparator=","
+						value={liability.minimumPayment ?? ""}
+						onValueChange={(v) =>
+							onUpdate({ minimumPayment: v ? Number.parseFloat(v) : undefined })
+						}
+						placeholder="0"
+						className="w-20 text-right text-xs bg-transparent border border-slate-200 rounded px-1 py-0.5 text-slate-600 placeholder:text-slate-300"
+					/>
+					<span className="text-xs text-slate-400">/mo payment</span>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -576,9 +613,7 @@ function LifeEventCard({
 					}}
 					className="bg-white border border-slate-200 rounded px-1.5 py-1 text-slate-600"
 				/>
-				{!event.endDate && (
-					<span className="text-slate-300 italic">forever</span>
-				)}
+				{!event.endDate && <span className="text-slate-300 italic">forever</span>}
 			</div>
 		</div>
 	);
@@ -623,7 +658,7 @@ function RESPEditor({
 					min={0}
 					max={35}
 					value={resp.beneficiaryAge}
-					onChange={(e) => onUpdate({ beneficiaryAge: Number.parseInt(e.target.value) || 0 })}
+					onChange={(e) => onUpdate({ beneficiaryAge: Number.parseInt(e.target.value, 10) || 0 })}
 					className="field-input"
 				/>
 			</Field>
@@ -631,13 +666,7 @@ function RESPEditor({
 	);
 }
 
-function Field({
-	label,
-	children,
-}: {
-	label: React.ReactNode;
-	children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
 	return (
 		<div className="flex items-center justify-between gap-4">
 			<label className="text-sm text-slate-600 shrink-0">{label}</label>

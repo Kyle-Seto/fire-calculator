@@ -22,7 +22,8 @@ export function PersonaSelector({ onPersonaSelected }: PersonaSelectorProps) {
 					When can you stop working?
 				</h1>
 				<p className="text-sm text-[#9B9B9B] max-w-sm mx-auto">
-					Real financial independence stories. Pick one close to yours, then make every number your own.
+					Real financial independence stories. Pick one close to yours, then make every number your
+					own.
 				</p>
 			</header>
 
@@ -35,17 +36,12 @@ export function PersonaSelector({ onPersonaSelected }: PersonaSelectorProps) {
 								className="animate-fade-in-up"
 								style={{ animationDelay: `${i * 60}ms` }}
 							>
-								<PersonaCard
-									persona={persona}
-									onSelect={handleSelect}
-								/>
+								<PersonaCard persona={persona} onSelect={handleSelect} />
 							</div>
 						))}
 					</div>
 
-					<p className="text-xs text-[#9B9B9B] text-center mt-12">
-						Every number is editable.
-					</p>
+					<p className="text-xs text-[#9B9B9B] text-center mt-12">Every number is editable.</p>
 				</div>
 			</main>
 		</div>

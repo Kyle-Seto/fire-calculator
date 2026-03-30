@@ -1,7 +1,7 @@
 import { PersonaEditor } from "@/components/persona/PersonaEditor";
-import { ResultsPanel } from "./ResultsPanel";
 import { useFireEngine } from "@/engine/useFireEngine";
 import { useFireStore } from "@/store/useFireStore";
+import { ResultsPanel } from "./ResultsPanel";
 
 type DashboardLayoutProps = {
 	onBack: () => void;
