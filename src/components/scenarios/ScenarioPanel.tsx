@@ -8,8 +8,8 @@ import {
 import type { ScenarioResult, CustomDecision } from "@/engine/scenarios";
 import { calculateAllResults } from "@/engine/fire";
 import CurrencyInput from "react-currency-input-field";
-import { cn, formatFireDate } from "@/lib/utils";
-import { Plus, X } from "lucide-react";
+import { cn, formatCurrency, formatFireDate, formatPercent } from "@/lib/utils";
+import { Plus, X, ChevronDown } from "lucide-react";
 
 function formatDelta(deltaMonths: number): string {
 	if (!Number.isFinite(deltaMonths)) {
@@ -53,36 +53,179 @@ function DeltaBadge({ deltaMonths }: { deltaMonths: number }) {
 	);
 }
 
-function ScenarioCard({
+/** A single row in the side-by-side comparison table */
+function ComparisonRow({
+	label,
+	base,
+	scenario,
+}: {
+	label: string;
+	base: string;
+	scenario: string;
+}) {
+	const changed = base !== scenario;
+	return (
+		<div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4 py-1.5">
+			<span className="text-xs text-slate-400">{label}</span>
+			<span className="text-xs text-slate-500 tabular-nums text-right w-24">{base}</span>
+			<span
+				className={cn(
+					"text-xs font-medium tabular-nums text-right w-24",
+					changed ? "text-slate-800" : "text-slate-400",
+				)}
+			>
+				{scenario}
+			</span>
+		</div>
+	);
+}
+
+/** Side-by-side comparison panel for a scenario */
+function ComparisonPanel({
 	result,
+	persona,
 	onApply,
 	isApplied,
 }: {
 	result: ScenarioResult;
-	onApply: (result: ScenarioResult) => void;
+	persona: { age: number };
+	onApply: () => void;
 	isApplied: boolean;
 }) {
-	const { scenario, deltaMonths, newFireDate } = result;
+	const { baseSnapshot: base, scenarioSnapshot: sc } = result;
+
+	const baseFireAge = Number.isFinite(base.yearsToFI)
+		? Math.round(persona.age + base.yearsToFI)
+		: null;
+	const scFireAge = Number.isFinite(sc.yearsToFI)
+		? Math.round(persona.age + sc.yearsToFI)
+		: null;
+
+	return (
+		<div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 animate-fade-in">
+			{/* Column headers */}
+			<div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4">
+				<span />
+				<span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium text-right w-24">
+					Current
+				</span>
+				<span className="text-[10px] uppercase tracking-wider text-slate-700 font-medium text-right w-24">
+					With change
+				</span>
+			</div>
+
+			<div className="divide-y divide-slate-100">
+				<ComparisonRow
+					label="FIRE date"
+					base={formatFireDate(base.fireDateEstimate, { short: true, fallback: "Never" })}
+					scenario={formatFireDate(sc.fireDateEstimate, { short: true, fallback: "Never" })}
+				/>
+				<ComparisonRow
+					label="FIRE age"
+					base={baseFireAge ? `Age ${baseFireAge}` : "—"}
+					scenario={scFireAge ? `Age ${scFireAge}` : "—"}
+				/>
+				<ComparisonRow
+					label="Portfolio"
+					base={formatCurrency(base.portfolioTotal)}
+					scenario={formatCurrency(sc.portfolioTotal)}
+				/>
+				<ComparisonRow
+					label="FIRE number"
+					base={formatCurrency(base.fireNumber)}
+					scenario={formatCurrency(sc.fireNumber)}
+				/>
+				{(base.afterTaxSavingsRate !== null || sc.afterTaxSavingsRate !== null) && (
+					<ComparisonRow
+						label="Savings rate"
+						base={base.afterTaxSavingsRate !== null ? formatPercent(base.afterTaxSavingsRate, 0) : "—"}
+						scenario={sc.afterTaxSavingsRate !== null ? formatPercent(sc.afterTaxSavingsRate, 0) : "—"}
+					/>
+				)}
+				{base.annualIncome !== sc.annualIncome && (
+					<ComparisonRow
+						label="Income"
+						base={formatCurrency(base.annualIncome)}
+						scenario={formatCurrency(sc.annualIncome)}
+					/>
+				)}
+				{base.monthlyExpenses !== sc.monthlyExpenses && (
+					<ComparisonRow
+						label="Monthly spending"
+						base={formatCurrency(base.monthlyExpenses)}
+						scenario={formatCurrency(sc.monthlyExpenses)}
+					/>
+				)}
+				{(base.totalLiabilities > 0 || sc.totalLiabilities > 0) && (
+					<ComparisonRow
+						label="Liabilities"
+						base={formatCurrency(base.totalLiabilities)}
+						scenario={formatCurrency(sc.totalLiabilities)}
+					/>
+				)}
+				<ComparisonRow
+					label="Progress"
+					base={formatPercent(Math.min(base.fireProgress, 100), 0)}
+					scenario={formatPercent(Math.min(sc.fireProgress, 100), 0)}
+				/>
+			</div>
+
+			<button
+				type="button"
+				onClick={onApply}
+				className={cn(
+					"w-full text-center text-sm font-medium rounded-xl px-4 py-2.5 transition-colors",
+					isApplied
+						? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+						: "bg-slate-900 text-white hover:bg-slate-800",
+				)}
+			>
+				{isApplied ? "Undo this change" : "Apply to my plan"}
+			</button>
+		</div>
+	);
+}
+
+function ScenarioCard({
+	result,
+	onToggle,
+	isExpanded,
+	isApplied,
+}: {
+	result: ScenarioResult;
+	onToggle: () => void;
+	isExpanded: boolean;
+	isApplied: boolean;
+}) {
+	const { scenario, deltaMonths } = result;
 
 	return (
 		<button
 			type="button"
-			onClick={() => onApply(result)}
+			onClick={onToggle}
 			className={cn(
 				"w-full text-left rounded-xl px-4 py-3 transition-all duration-200",
 				"focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500",
 				isApplied
 					? "bg-blue-50 shadow-sm"
-					: "bg-slate-50/70 hover:bg-slate-100/80",
+					: isExpanded
+						? "bg-slate-100"
+						: "bg-slate-50/70 hover:bg-slate-100/80",
 			)}
 		>
 			<div className="flex items-center gap-3">
 				<span className="text-lg leading-none shrink-0">{scenario.icon}</span>
 				<div className="flex-1 min-w-0">
 					<p className="text-sm font-medium text-slate-700">{scenario.name}</p>
-					<p className="text-xs text-slate-400 mt-0.5">{formatFireDate(newFireDate, { short: true, fallback: "—" })}</p>
+					<p className="text-xs text-slate-400 mt-0.5">{scenario.description}</p>
 				</div>
 				<DeltaBadge deltaMonths={deltaMonths} />
+				<ChevronDown
+					className={cn(
+						"w-4 h-4 text-slate-300 transition-transform duration-200 shrink-0",
+						isExpanded && "rotate-180",
+					)}
+				/>
 			</div>
 		</button>
 	);
@@ -133,9 +276,10 @@ export function ScenarioPanel() {
 	const setPersona = useFireStore((s) => s.setPersona);
 	const [originalPersona, setOriginalPersona] = useState<typeof persona | null>(null);
 	const [appliedId, setAppliedId] = useState<string | null>(null);
+	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const [showBuilder, setShowBuilder] = useState(false);
 	const [draft, setDraft] = useState<CustomDecision>({ ...EMPTY_DECISION });
-	const [showPresets, setShowPresets] = useState(false);
+	const [showAllPresets, setShowAllPresets] = useState(false);
 
 	const presetResults = useMemo(() => evaluateAllScenarios(persona), [persona]);
 
@@ -182,7 +326,14 @@ export function ScenarioPanel() {
 			setOriginalPersona(null);
 		}
 		setAppliedId(null);
+		setExpandedId(null);
 	}
+
+	function toggleExpand(id: string) {
+		setExpandedId(expandedId === id ? null : id);
+	}
+
+	const visiblePresets = showAllPresets ? presetResults : presetResults.slice(0, 3);
 
 	return (
 		<div className="space-y-4">
@@ -248,32 +399,25 @@ export function ScenarioPanel() {
 						/>
 					</div>
 
-					{/* Live result */}
+					{/* Live comparison for custom decision */}
 					{customResult && (
-						<div className="flex items-center justify-between pt-2 border-t border-slate-100">
-							<div>
-								<p className="text-xs text-slate-400">New FIRE date</p>
-								<p className="text-sm font-medium text-slate-700">
-									{formatFireDate(customResult.newFireDate, { short: true, fallback: "—" })}
-								</p>
-							</div>
-							<DeltaBadge deltaMonths={customResult.deltaMonths} />
-						</div>
+						<ComparisonPanel
+							result={customResult}
+							persona={persona}
+							onApply={handleApplyCustom}
+							isApplied={appliedId === customResult.scenario.id}
+						/>
 					)}
 
-					<button
-						type="button"
-						onClick={handleApplyCustom}
-						disabled={!customResult}
-						className={cn(
-							"w-full text-center text-sm font-medium rounded-xl px-4 py-2.5 transition-colors",
-							customResult
-								? "bg-slate-900 text-white hover:bg-slate-800"
-								: "bg-slate-100 text-slate-300 cursor-not-allowed",
-						)}
-					>
-						Apply this decision
-					</button>
+					{!customResult && (
+						<button
+							type="button"
+							disabled
+							className="w-full text-center text-sm font-medium rounded-xl px-4 py-2.5 bg-slate-100 text-slate-300 cursor-not-allowed"
+						>
+							Change a value to compare
+						</button>
+					)}
 				</div>
 			) : (
 				<button
@@ -294,26 +438,34 @@ export function ScenarioPanel() {
 			)}
 
 			{/* ── Preset Scenarios ── */}
-			<div>
-				<button
-					type="button"
-					onClick={() => setShowPresets(!showPresets)}
-					className="text-xs text-slate-400 hover:text-slate-500 transition-colors"
-				>
-					{showPresets ? "Hide" : "Show"} common scenarios
-				</button>
-
-				{showPresets && (
-					<div className="space-y-2 mt-3">
-						{presetResults.map((result) => (
-							<ScenarioCard
-								key={result.scenario.id}
+			<div className="space-y-2">
+				{visiblePresets.map((result) => (
+					<div key={result.scenario.id} className="space-y-2">
+						<ScenarioCard
+							result={result}
+							onToggle={() => toggleExpand(result.scenario.id)}
+							isExpanded={expandedId === result.scenario.id}
+							isApplied={appliedId === result.scenario.id}
+						/>
+						{expandedId === result.scenario.id && (
+							<ComparisonPanel
 								result={result}
-								onApply={handleApply}
+								persona={persona}
+								onApply={() => handleApply(result)}
 								isApplied={appliedId === result.scenario.id}
 							/>
-						))}
+						)}
 					</div>
+				))}
+
+				{presetResults.length > 3 && (
+					<button
+						type="button"
+						onClick={() => setShowAllPresets(!showAllPresets)}
+						className="text-xs text-slate-400 hover:text-slate-500 transition-colors"
+					>
+						{showAllPresets ? "Show fewer" : `Show ${presetResults.length - 3} more scenarios`}
+					</button>
 				)}
 			</div>
 		</div>

@@ -3,6 +3,7 @@ import { DEFAULTS } from "@/data/constants";
 import { calculateTaxOnWithdrawal } from "@/engine/tax";
 import { calculatePortfolioTotal, calculateAnnualExpenses } from "@/engine/fire";
 import { resolveFinancialsAtYear } from "@/engine/lifeEvents";
+import { FEDERAL_BRACKETS, ONTARIO_BRACKETS } from "@/data/taxBrackets";
 
 // ── Types ──
 
@@ -13,6 +14,7 @@ export type WithdrawalPlan = {
   rrspWithdrawal: number;
   nonRegWithdrawal: number;
   fhsaWithdrawal: number;
+  rrspMeltdown: number; // extra RRSP withdrawn beyond expenses for bracket filling
   totalWithdrawal: number;
   taxOwed: number;
   afterTaxIncome: number;
@@ -41,16 +43,27 @@ function getAssetBalance(persona: Persona, type: string): number {
 // ── Core Functions ──
 
 /**
- * Generate a year-by-year withdrawal plan for a retired persona.
+ * The lowest ceiling where both federal and provincial rates stay in the
+ * first bracket. RRSP meltdown should fill up to this amount.
+ */
+function lowestBracketCeiling(): number {
+  return Math.min(FEDERAL_BRACKETS[0].max, ONTARIO_BRACKETS[0].max);
+}
+
+/**
+ * Generate a tax-minimized year-by-year withdrawal plan.
  *
- * Withdrawal order (tax-optimized):
- *   1. Non-registered first — only capital gains portion is taxed
- *   2. RRSP meltdown — fill lowest tax brackets
- *   3. TFSA — completely tax-free, no forced withdrawals
- *   4. FHSA last — special-purpose, preserve for home purchase or RRSP transfer
+ * Strategy (RRSP meltdown with bracket filling):
  *
- * Each year: withdraw needed amount, apply growth to remaining balances,
- * calculate tax on withdrawals.
+ *   1. Calculate retirement income for the year (life event income only,
+ *      no working income — we're modeling "if you quit").
+ *   2. RRSP meltdown: withdraw RRSP to fill the lowest tax bracket.
+ *      In low-income years (before CPP/OAS), this is a large amount.
+ *      In high-income years (after CPP/OAS), bracket room shrinks.
+ *      Excess beyond expenses is conceptually moved to TFSA.
+ *   3. Cover remaining expenses from non-reg (lightly taxed), then TFSA,
+ *      then FHSA last.
+ *   4. Apply growth to all remaining balances.
  */
 export function generateWithdrawalPlan(
   persona: Persona,
@@ -59,6 +72,7 @@ export function generateWithdrawalPlan(
   const baseExpenses = calculateAnnualExpenses(persona);
   const hasEvents = (persona.lifeEvents ?? []).length > 0;
   const growthRate = DEFAULTS.realReturnMean;
+  const bracketCeiling = lowestBracketCeiling();
 
   let tfsaBal = getAssetBalance(persona, "TFSA");
   let rrspBal = getAssetBalance(persona, "RRSP");
@@ -71,58 +85,69 @@ export function generateWithdrawalPlan(
     const year = new Date().getFullYear() + i;
     const age = persona.age + i;
 
-    // Net withdrawal need: expenses minus life-event income only.
-    // Base annualIncome (working income) is excluded — this models retirement.
-    let remaining: number;
+    // Retirement income = life event income only (CPP, OAS, pension, rental)
+    let retirementIncome = 0;
+    let expenseNeed: number;
     if (hasEvents) {
       const { annualIncome, annualExpenses } = resolveFinancialsAtYear(persona, i);
-      // Subtract base working income to get only life-event income
-      const retirementIncome = annualIncome - persona.annualIncome;
-      remaining = Math.max(0, annualExpenses - retirementIncome);
+      retirementIncome = annualIncome - persona.annualIncome;
+      expenseNeed = Math.max(0, annualExpenses - retirementIncome);
     } else {
-      remaining = baseExpenses;
+      expenseNeed = baseExpenses;
     }
 
     let nonRegW = 0;
     let rrspW = 0;
     let tfsaW = 0;
     let fhsaW = 0;
+    let rrspMeltdown = 0;
 
-    // Step 1: Non-registered (only gains taxed at 50% inclusion)
-    if (remaining > 0 && nonRegBal > 0) {
-      nonRegW = Math.min(remaining, nonRegBal);
-      nonRegBal -= nonRegW;
-      remaining -= nonRegW;
-    }
+    // Step 1: RRSP meltdown — fill lowest bracket
+    // Room = bracket ceiling minus other taxable income this year
+    const bracketRoom = Math.max(0, bracketCeiling - retirementIncome);
+    const optimalRrsp = Math.min(bracketRoom, rrspBal);
 
-    // Step 2: RRSP meltdown (fill low brackets)
-    if (remaining > 0 && rrspBal > 0) {
-      rrspW = Math.min(remaining, rrspBal);
+    if (optimalRrsp > 0) {
+      rrspW = Math.min(optimalRrsp, expenseNeed);
       rrspBal -= rrspW;
-      remaining -= rrspW;
+      expenseNeed -= rrspW;
+
+      // Meltdown: withdraw beyond expenses to fill bracket, move excess to TFSA
+      rrspMeltdown = optimalRrsp - rrspW;
+      if (rrspMeltdown > 0) {
+        rrspBal -= rrspMeltdown;
+        tfsaBal += rrspMeltdown; // conceptual RRSP→TFSA conversion
+      }
     }
 
-    // Step 3: TFSA (tax-free)
-    if (remaining > 0 && tfsaBal > 0) {
-      tfsaW = Math.min(remaining, tfsaBal);
+    // Step 2: Non-registered (only gains taxed at 50% inclusion)
+    if (expenseNeed > 0 && nonRegBal > 0) {
+      nonRegW = Math.min(expenseNeed, nonRegBal);
+      nonRegBal -= nonRegW;
+      expenseNeed -= nonRegW;
+    }
+
+    // Step 3: TFSA (tax-free, preserve as long as possible)
+    if (expenseNeed > 0 && tfsaBal > 0) {
+      tfsaW = Math.min(expenseNeed, tfsaBal);
       tfsaBal -= tfsaW;
-      remaining -= tfsaW;
+      expenseNeed -= tfsaW;
     }
 
-    // Step 4: FHSA (special-purpose, withdraw last)
-    if (remaining > 0 && fhsaBal > 0) {
-      fhsaW = Math.min(remaining, fhsaBal);
+    // Step 4: FHSA last
+    if (expenseNeed > 0 && fhsaBal > 0) {
+      fhsaW = Math.min(expenseNeed, fhsaBal);
       fhsaBal -= fhsaW;
-      remaining -= fhsaW;
+      expenseNeed -= fhsaW;
     }
 
     const totalWithdrawal = nonRegW + rrspW + tfsaW + fhsaW;
+    const totalRrspTaxable = rrspW + rrspMeltdown;
 
-    // Calculate tax: RRSP is taxable income, non-reg has partial gains tax
+    // Tax: RRSP withdrawal (incl meltdown) is taxable on top of retirement income
     let taxOwed = 0;
-    taxOwed += calculateTaxOnWithdrawal(rrspW, "RRSP", 0);
-    taxOwed += calculateTaxOnWithdrawal(nonRegW, "NonRegistered", rrspW);
-    // TFSA and FHSA: $0 tax
+    taxOwed += calculateTaxOnWithdrawal(totalRrspTaxable, "RRSP", retirementIncome);
+    taxOwed += calculateTaxOnWithdrawal(nonRegW, "NonRegistered", retirementIncome + totalRrspTaxable);
 
     const afterTaxIncome = totalWithdrawal - taxOwed;
 
@@ -139,6 +164,7 @@ export function generateWithdrawalPlan(
       rrspWithdrawal: rrspW,
       nonRegWithdrawal: nonRegW,
       fhsaWithdrawal: fhsaW,
+      rrspMeltdown,
       totalWithdrawal,
       taxOwed,
       afterTaxIncome,

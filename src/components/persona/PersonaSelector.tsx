@@ -17,38 +17,34 @@ export function PersonaSelector({ onPersonaSelected }: PersonaSelectorProps) {
 
 	return (
 		<div className="min-h-screen flex flex-col">
-			<header className="pt-16 pb-12 px-6 text-center">
-				<div className="flex items-center justify-center gap-2 mb-4">
-					<div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center">
-						<span className="text-white text-sm font-bold">F</span>
-					</div>
-					<h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-						FIRE Co-Pilot
-					</h1>
-				</div>
-				<p className="text-slate-500 text-lg max-w-md mx-auto">
-					Your path to financial independence, calculated.
+			<header className="pt-20 pb-10 px-6 text-center animate-fade-in">
+				<h1 className="font-[family-name:var(--font-display)] text-3xl text-[#1A1A1A] mb-3">
+					When can you stop working?
+				</h1>
+				<p className="text-sm text-[#9B9B9B] max-w-sm mx-auto">
+					Real financial independence stories. Pick one close to yours, then make every number your own.
 				</p>
 			</header>
 
-			<main className="flex-1 px-6 pb-16">
+			<main className="flex-1 px-6 pb-20">
 				<div className="max-w-3xl mx-auto">
-					<p className="text-sm text-slate-400 uppercase tracking-wider font-medium mb-6 text-center">
-						Pick a profile that looks like you
-					</p>
-
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						{PERSONA_TEMPLATES.map((persona) => (
-							<PersonaCard
+						{PERSONA_TEMPLATES.map((persona, i) => (
+							<div
 								key={persona.id}
-								persona={persona}
-								onSelect={handleSelect}
-							/>
+								className="animate-fade-in-up"
+								style={{ animationDelay: `${i * 60}ms` }}
+							>
+								<PersonaCard
+									persona={persona}
+									onSelect={handleSelect}
+								/>
+							</div>
 						))}
 					</div>
 
-					<p className="text-xs text-slate-400 text-center mt-8 max-w-sm mx-auto">
-						Every number is editable. Pick a starting point, then make it yours.
+					<p className="text-xs text-[#9B9B9B] text-center mt-12">
+						Every number is editable.
 					</p>
 				</div>
 			</main>

@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useFireStore } from "@/store/useFireStore";
 import type { Asset, AssetType, Liability, LifeEvent, Persona, RESPAccount } from "@/types";
 import CurrencyInput from "react-currency-input-field";
-import { ArrowLeft, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, Plus, RotateCcw, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type PersonaEditorProps = {
 	onBack: () => void;
@@ -29,10 +31,26 @@ const ASSET_COLORS: Record<string, string> = {
 	Other: "bg-rose-400",
 };
 
+// Sections that are expanded by default
+const DEFAULT_OPEN = new Set(["basics"]);
+
 export function PersonaEditor({ onBack }: PersonaEditorProps) {
 	const persona = useFireStore((s) => s.persona);
 	const updatePersona = useFireStore((s) => s.updatePersona);
 	const resetPersona = useFireStore((s) => s.resetPersona);
+	const [openSections, setOpenSections] = useState<Set<string>>(new Set(DEFAULT_OPEN));
+
+	function toggleSection(id: string) {
+		setOpenSections((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) {
+				next.delete(id);
+			} else {
+				next.add(id);
+			}
+			return next;
+		});
+	}
 
 	function handleCurrencyChange(field: keyof Persona, value: string | undefined) {
 		const num = value ? Number.parseFloat(value) : 0;
@@ -136,108 +154,180 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 	}
 
 	return (
-		<div className="h-full flex flex-col bg-white border-r border-slate-200/80">
-			<div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+		<div className="h-full flex flex-col bg-white border-r border-[#E5E5E5]">
+			<div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E5E5]">
 				<button
 					type="button"
 					onClick={onBack}
-					className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors"
+					className="flex items-center gap-1.5 text-sm text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors"
 				>
 					<ArrowLeft className="w-4 h-4" />
-					<span>Personas</span>
+					<span>Back</span>
 				</button>
 				<button
 					type="button"
 					onClick={() => resetPersona(persona.id)}
-					className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 transition-colors"
+					className="flex items-center gap-1.5 text-sm text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors"
 				>
 					<RotateCcw className="w-3.5 h-3.5" />
 					<span>Reset</span>
 				</button>
 			</div>
 
-			<div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-				<div>
-					<p className="text-xs text-slate-400 uppercase tracking-wider font-medium mb-1">
+			<div className="flex-1 overflow-y-auto">
+				<div className="px-5 py-4 border-b border-[#E5E5E5]">
+					<p className="text-xs text-[#9B9B9B] font-medium mb-1">
 						Editing
 					</p>
-					<p className="text-base font-semibold text-slate-900">{persona.name}</p>
+					<p className="font-[family-name:var(--font-display)] text-lg text-[#1A1A1A]">{persona.name}</p>
 				</div>
 
-				<Section title="Personal">
-					<Field label="Age">
-						<input
-							type="number"
-							min={18}
-							max={100}
-							value={persona.age}
-							onChange={(e) =>
-								updatePersona({ age: Number.parseInt(e.target.value) || 18 })
-							}
-							className="field-input"
-						/>
-					</Field>
-				</Section>
+				{/* ── Basics: Age + Income + Spending + Housing (always important) ── */}
+				<AccordionSection
+					id="basics"
+					title="Basics"
+					subtitle={`Age ${persona.age}`}
+					isOpen={openSections.has("basics")}
+					onToggle={toggleSection}
+				>
+					<div className="space-y-3">
+						<Field label="Age">
+							<input
+								type="number"
+								min={18}
+								max={100}
+								value={persona.age}
+								onChange={(e) =>
+									updatePersona({ age: Number.parseInt(e.target.value) || 18 })
+								}
+								className="field-input"
+							/>
+						</Field>
+						<Field label="Annual income">
+							<CurrencyField
+								value={persona.annualIncome}
+								onValueChange={(v) => handleCurrencyChange("annualIncome", v)}
+							/>
+						</Field>
+						<Field label="Monthly spending">
+							<CurrencyField
+								value={persona.monthlySpending}
+								onValueChange={(v) => handleCurrencyChange("monthlySpending", v)}
+							/>
+						</Field>
+						<Field label="Housing type">
+							<select
+								value={persona.housing.type}
+								onChange={(e) => handleHousingChange("type", e.target.value)}
+								className="field-input"
+							>
+								<option value="rent">Renting</option>
+								<option value="own">Own / Mortgage</option>
+							</select>
+						</Field>
+						<Field label="Monthly payment">
+							<CurrencyField
+								value={persona.housing.monthlyAmount}
+								onValueChange={(v) => handleHousingChange("monthlyAmount", v)}
+							/>
+						</Field>
+					</div>
+				</AccordionSection>
 
-				<Section title="Income">
-					<Field label="Annual income">
-						<CurrencyField
-							value={persona.annualIncome}
-							onValueChange={(v) => handleCurrencyChange("annualIncome", v)}
-						/>
-					</Field>
-				</Section>
+				{/* ── Assets ── */}
+				<AccordionSection
+					id="assets"
+					title="Assets"
+					subtitle={`${persona.assets.length} account${persona.assets.length !== 1 ? "s" : ""}`}
+					isOpen={openSections.has("assets")}
+					onToggle={toggleSection}
+				>
+					<div className="space-y-2">
+						{persona.assets.map((asset) => (
+							<AssetCard
+								key={asset.id}
+								asset={asset}
+								onUpdate={(updates) => handleUpdateAsset(asset.id, updates)}
+								onRemove={() => handleRemoveAsset(asset.id)}
+							/>
+						))}
+						<button
+							type="button"
+							onClick={handleAddAsset}
+							className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+						>
+							<Plus className="w-3.5 h-3.5" />
+							Add asset
+						</button>
+					</div>
+				</AccordionSection>
 
-				<Section title="Spending">
-					<Field label="Monthly spending">
-						<CurrencyField
-							value={persona.monthlySpending}
-							onValueChange={(v) => handleCurrencyChange("monthlySpending", v)}
-						/>
-					</Field>
-				</Section>
+				{/* ── Liabilities ── */}
+				<AccordionSection
+					id="liabilities"
+					title="Liabilities"
+					subtitle={persona.liabilities.length > 0 ? `${persona.liabilities.length} debt${persona.liabilities.length !== 1 ? "s" : ""}` : "None"}
+					isOpen={openSections.has("liabilities")}
+					onToggle={toggleSection}
+				>
+					<div className="space-y-2">
+						{persona.liabilities.map((liability) => (
+							<LiabilityCard
+								key={liability.id}
+								liability={liability}
+								onUpdate={(updates) => handleUpdateLiability(liability.id, updates)}
+								onRemove={() => handleRemoveLiability(liability.id)}
+							/>
+						))}
+						<button
+							type="button"
+							onClick={handleAddLiability}
+							className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+						>
+							<Plus className="w-3.5 h-3.5" />
+							Add liability
+						</button>
+					</div>
+				</AccordionSection>
 
-				<Section title="Assets">
-					{persona.assets.map((asset) => (
-						<AssetCard
-							key={asset.id}
-							asset={asset}
-							onUpdate={(updates) => handleUpdateAsset(asset.id, updates)}
-							onRemove={() => handleRemoveAsset(asset.id)}
-						/>
-					))}
-					<button
-						type="button"
-						onClick={handleAddAsset}
-						className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
-					>
-						<Plus className="w-3.5 h-3.5" />
-						Add asset
-					</button>
-				</Section>
+				{/* ── Life Events ── */}
+				<AccordionSection
+					id="events"
+					title="Life Events"
+					subtitle={events.length > 0 ? `${events.length} event${events.length !== 1 ? "s" : ""}` : "None"}
+					isOpen={openSections.has("events")}
+					onToggle={toggleSection}
+				>
+					<div className="space-y-3">
+						{events.map((event) => (
+							<LifeEventCard
+								key={event.id}
+								event={event}
+								onUpdate={(updates) => handleUpdateEvent(event.id, updates)}
+								onRemove={() => handleRemoveEvent(event.id)}
+							/>
+						))}
+						<button
+							type="button"
+							onClick={handleAddEvent}
+							className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+						>
+							<Plus className="w-3.5 h-3.5" />
+							Add event
+						</button>
+					</div>
+				</AccordionSection>
 
-				<Section title="Liabilities">
-					{persona.liabilities.map((liability) => (
-						<LiabilityCard
-							key={liability.id}
-							liability={liability}
-							onUpdate={(updates) => handleUpdateLiability(liability.id, updates)}
-							onRemove={() => handleRemoveLiability(liability.id)}
-						/>
-					))}
-					<button
-						type="button"
-						onClick={handleAddLiability}
-						className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
-					>
-						<Plus className="w-3.5 h-3.5" />
-						Add liability
-					</button>
-				</Section>
-
-				<Section title="Education Savings (RESP)">
+				{/* ── RESP (optional) ── */}
+				<AccordionSection
+					id="resp"
+					title="Education Savings (RESP)"
+					subtitle={persona.resp ? "Active" : "Not set up"}
+					isOpen={openSections.has("resp")}
+					onToggle={toggleSection}
+				>
 					{persona.resp ? (
-						<>
+						<div className="space-y-2">
 							<RESPEditor
 								resp={persona.resp}
 								onUpdate={(updates) =>
@@ -252,7 +342,7 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 								<X className="w-3.5 h-3.5" />
 								Remove RESP
 							</button>
-						</>
+						</div>
 					) : (
 						<button
 							type="button"
@@ -267,57 +357,70 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 									},
 								})
 							}
-							className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+							className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors"
 						>
 							<Plus className="w-3.5 h-3.5" />
 							Add RESP
 						</button>
 					)}
-				</Section>
-
-				<Section title="Housing">
-					<Field label="Type">
-						<select
-							value={persona.housing.type}
-							onChange={(e) => handleHousingChange("type", e.target.value)}
-							className="field-input"
-						>
-							<option value="rent">Renting</option>
-							<option value="own">Own / Mortgage</option>
-						</select>
-					</Field>
-					<Field label="Monthly payment">
-						<CurrencyField
-							value={persona.housing.monthlyAmount}
-							onValueChange={(v) => handleHousingChange("monthlyAmount", v)}
-						/>
-					</Field>
-				</Section>
-
-				<Section title="Life Events">
-					{events.map((event) => (
-						<LifeEventCard
-							key={event.id}
-							event={event}
-							onUpdate={(updates) => handleUpdateEvent(event.id, updates)}
-							onRemove={() => handleRemoveEvent(event.id)}
-						/>
-					))}
-					<button
-						type="button"
-						onClick={handleAddEvent}
-						className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
-					>
-						<Plus className="w-3.5 h-3.5" />
-						Add event
-					</button>
-				</Section>
+				</AccordionSection>
 			</div>
 		</div>
 	);
 }
 
 // ── Sub-components ──
+
+function AccordionSection({
+	id,
+	title,
+	subtitle,
+	isOpen,
+	onToggle,
+	children,
+}: {
+	id: string;
+	title: string;
+	subtitle?: string;
+	isOpen: boolean;
+	onToggle: (id: string) => void;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="border-b border-[#E5E5E5]">
+			<button
+				type="button"
+				onClick={() => onToggle(id)}
+				className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#F7F7F0]/50 transition-colors"
+			>
+				<div className="flex items-baseline gap-2">
+					<span className="text-sm font-medium text-[#1A1A1A]">
+						{title}
+					</span>
+					{subtitle && !isOpen && (
+						<span className="text-xs text-[#9B9B9B]">{subtitle}</span>
+					)}
+				</div>
+				<ChevronDown
+					className={cn(
+						"w-3.5 h-3.5 text-[#9B9B9B] transition-transform duration-200",
+						isOpen && "rotate-180",
+					)}
+				/>
+			</button>
+			<div
+				className="collapse-section"
+				data-open={isOpen}
+			>
+				<div>
+					<div className="px-5 pb-4">
+						{children}
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
 
 function AssetCard({
 	asset,
@@ -524,23 +627,6 @@ function RESPEditor({
 					className="field-input"
 				/>
 			</Field>
-		</div>
-	);
-}
-
-function Section({
-	title,
-	children,
-}: {
-	title: string;
-	children: React.ReactNode;
-}) {
-	return (
-		<div className="space-y-3">
-			<h3 className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-				{title}
-			</h3>
-			{children}
 		</div>
 	);
 }

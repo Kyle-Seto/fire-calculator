@@ -48,6 +48,8 @@ export type Liability = {
   id: string;
   label: string;
   balance: number;
+  interestRate?: number;    // annual rate, e.g. 0.05 = 5%
+  minimumPayment?: number;  // monthly payment amount
 };
 
 export type Persona = {

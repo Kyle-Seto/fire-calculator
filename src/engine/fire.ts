@@ -1,4 +1,4 @@
-import { INVESTABLE_TYPES, type Asset, type FireResults, type FireType, type Persona } from "@/types";
+import { INVESTABLE_TYPES, type Asset, type FireResults, type FireType, type Liability, type Persona } from "@/types";
 import { DEFAULTS, FIRE_THRESHOLDS } from "@/data/constants";
 import {
   calculateAfterTaxIncome,
@@ -73,6 +73,38 @@ export function calculateYearsToFI(
   return years;
 }
 
+/** Calculate total annual debt service (minimum payments) across all liabilities. */
+export function calculateAnnualDebtService(liabilities: Liability[]): number {
+  return liabilities.reduce((sum, l) => sum + (l.minimumPayment ?? 0) * 12, 0);
+}
+
+/**
+ * Simulate one year of debt: accrue interest, apply payments, return remaining balances
+ * and total payments made this year. Debts that reach 0 are removed.
+ */
+function simulateDebtYear(debts: { balance: number; rate: number; payment: number }[]): {
+  debts: { balance: number; rate: number; payment: number }[];
+  totalPayments: number;
+} {
+  let totalPayments = 0;
+  const remaining: { balance: number; rate: number; payment: number }[] = [];
+
+  for (const d of debts) {
+    if (d.balance <= 0) continue;
+    // Accrue interest
+    let balance = d.balance * (1 + d.rate);
+    // Apply 12 months of payments
+    const yearlyPayment = Math.min(d.payment * 12, balance);
+    balance -= yearlyPayment;
+    totalPayments += yearlyPayment;
+    if (balance > 0.01) {
+      remaining.push({ ...d, balance });
+    }
+  }
+
+  return { debts: remaining, totalPayments };
+}
+
 export function calculateYearsToFIWithEvents(
   currentPortfolio: number,
   persona: Persona,
@@ -85,9 +117,24 @@ export function calculateYearsToFIWithEvents(
   let portfolio = currentPortfolio;
   const r = realReturnRate;
 
+  // Initialize debt tracking
+  let debts = persona.liabilities
+    .filter((l) => l.balance > 0)
+    .map((l) => ({
+      balance: l.balance,
+      rate: l.interestRate ?? 0,
+      payment: l.minimumPayment ?? 0,
+    }));
+
   for (let year = 0; year < maxYears; year++) {
     const { annualIncome, annualExpenses } = resolveFinancialsAtYear(persona, year);
-    const annualSavings = annualIncome - annualExpenses;
+
+    // Simulate debt for this year
+    const debtResult = simulateDebtYear(debts);
+    debts = debtResult.debts;
+
+    // Debt payments come out of income on top of living expenses
+    const annualSavings = annualIncome - annualExpenses - debtResult.totalPayments;
 
     portfolio = portfolio * (1 + r) + annualSavings;
 
@@ -160,8 +207,10 @@ export function calculateAllResults(
   const savingsRate = calculateSavingsRate(annualIncome, annualExpenses);
   const annualSavings = annualIncome - annualExpenses;
 
+  const hasDebt = persona.liabilities.some((l) => l.balance > 0 && (l.minimumPayment ?? 0) > 0);
   const hasEvents = (persona.lifeEvents ?? []).length > 0;
-  const yearsToFI = hasEvents
+  // Use the year-by-year simulation when there are life events or debt to model paydown
+  const yearsToFI = (hasEvents || hasDebt)
     ? calculateYearsToFIWithEvents(portfolioTotal, persona, fireNumber, DEFAULTS.realReturnMean)
     : calculateYearsToFI(portfolioTotal, annualSavings, fireNumber, DEFAULTS.realReturnMean);
 
