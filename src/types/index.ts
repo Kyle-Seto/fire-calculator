@@ -21,6 +21,15 @@ export type FireType = (typeof FireType)[keyof typeof FireType];
 
 // ── Core Types ──
 
+export type LifeEvent = {
+  id: string;
+  label: string;
+  type: "income" | "expense";
+  monthlyAmount: number;
+  startDate: string; // "YYYY-MM" format
+  endDate?: string;  // "YYYY-MM" format, undefined = permanent
+};
+
 export type Account = {
   type: AccountType;
   balance: number;
@@ -42,6 +51,7 @@ export type Persona = {
     mortgageRemaining?: number;
   };
   debt: number;
+  lifeEvents?: LifeEvent[];
   sourceUrl?: string;
   retirementStatus: "accumulating" | "retired";
   withdrawalStrategy?: string;

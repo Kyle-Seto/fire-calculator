@@ -2,7 +2,8 @@ import type { MonteCarloResults } from "@/types";
 
 interface MonteCarloParams {
   startingPortfolio: number;
-  annualContribution: number; // positive for accumulating, negative for withdrawing
+  annualContribution: number; // flat fallback (positive for accumulating, negative for withdrawing)
+  annualContributions?: number[]; // per-year override, length = years
   targetAmount: number; // FIRE number (for accumulating) or 0 (for checking portfolio survival)
   years: number;
   runs: number;
@@ -68,6 +69,7 @@ export function runMonteCarloSimulation(
   const {
     startingPortfolio,
     annualContribution,
+    annualContributions,
     targetAmount,
     years,
     runs,
@@ -95,7 +97,8 @@ export function runMonteCarloSimulation(
 
     for (let year = 0; year < years; year++) {
       const annualReturn = generateReturn(rand, meanReturn, stdDevReturn);
-      portfolio = portfolio * (1 + annualReturn) + annualContribution;
+      const contribution = annualContributions?.[year] ?? annualContribution;
+      portfolio = portfolio * (1 + annualReturn) + contribution;
 
       if (mode === "withdrawal" && portfolio < 0) {
         portfolio = 0;

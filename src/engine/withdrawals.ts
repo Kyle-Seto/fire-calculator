@@ -2,6 +2,7 @@ import type { Persona } from "@/types";
 import { DEFAULTS } from "@/data/constants";
 import { calculateTaxOnWithdrawal } from "@/engine/tax";
 import { calculatePortfolioTotal, calculateAnnualExpenses } from "@/engine/fire";
+import { resolveFinancialsAtYear } from "@/engine/lifeEvents";
 
 // ── Types ──
 
@@ -52,7 +53,8 @@ export function generateWithdrawalPlan(
   persona: Persona,
   years: number = 30,
 ): WithdrawalPlan[] {
-  const annualExpenses = calculateAnnualExpenses(persona);
+  const baseExpenses = calculateAnnualExpenses(persona);
+  const hasEvents = (persona.lifeEvents ?? []).length > 0;
   const growthRate = DEFAULTS.realReturnMean;
 
   let tfsaBal = getAccountBalance(persona, "TFSA");
@@ -64,7 +66,15 @@ export function generateWithdrawalPlan(
   for (let i = 0; i < years; i++) {
     const year = new Date().getFullYear() + i;
     const age = persona.age + i;
-    let remaining = annualExpenses;
+
+    // Net withdrawal need: expenses minus any income at this year
+    let remaining: number;
+    if (hasEvents) {
+      const { annualIncome, annualExpenses } = resolveFinancialsAtYear(persona, i);
+      remaining = Math.max(0, annualExpenses - annualIncome);
+    } else {
+      remaining = baseExpenses;
+    }
 
     let nonRegW = 0;
     let rrspW = 0;

@@ -12,12 +12,18 @@ const ACCENT_COLORS: Record<string, string> = {
 	"mr-student-investor": "bg-rose-500",
 	"mr-retire-or-boat": "bg-teal-500",
 	"mr-retiring-with-debt": "bg-orange-500",
+	"mr-ivf-fire": "bg-purple-500",
+	"mr-geo-arbitrage": "bg-emerald-500",
+	"mr-healing-brain": "bg-blue-500",
 };
 
 const ACCENT_TEXT: Record<string, string> = {
 	"mr-student-investor": "text-rose-600",
 	"mr-retire-or-boat": "text-teal-600",
 	"mr-retiring-with-debt": "text-orange-600",
+	"mr-ivf-fire": "text-purple-600",
+	"mr-geo-arbitrage": "text-emerald-600",
+	"mr-healing-brain": "text-blue-600",
 };
 
 function computeStats(persona: PersonaTemplate) {

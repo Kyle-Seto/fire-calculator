@@ -1,7 +1,7 @@
 import { useFireStore } from "@/store/useFireStore";
-import type { Account, Persona } from "@/types";
+import type { Account, LifeEvent, Persona } from "@/types";
 import CurrencyInput from "react-currency-input-field";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { ArrowLeft, Plus, RotateCcw, X } from "lucide-react";
 
 type PersonaEditorProps = {
 	onBack: () => void;
@@ -50,6 +50,35 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 				housing: { ...persona.housing, [field]: num },
 			});
 		}
+	}
+
+	const events = persona.lifeEvents ?? [];
+
+	function handleAddEvent() {
+		const now = new Date();
+		const defaultStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+		updatePersona({
+			lifeEvents: [
+				...events,
+				{
+					id: crypto.randomUUID(),
+					label: "",
+					type: "expense",
+					monthlyAmount: 0,
+					startDate: defaultStart,
+				},
+			],
+		});
+	}
+
+	function handleRemoveEvent(eventId: string) {
+		updatePersona({ lifeEvents: events.filter((e) => e.id !== eventId) });
+	}
+
+	function handleUpdateEvent(eventId: string, updates: Partial<LifeEvent>) {
+		updatePersona({
+			lifeEvents: events.map((e) => (e.id === eventId ? { ...e, ...updates } : e)),
+		});
 	}
 
 	return (
@@ -165,6 +194,101 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 						</Field>
 					)}
 				</Section>
+
+				<Section title="Life Events">
+					{events.map((event) => (
+						<LifeEventCard
+							key={event.id}
+							event={event}
+							onUpdate={(updates) => handleUpdateEvent(event.id, updates)}
+							onRemove={() => handleRemoveEvent(event.id)}
+						/>
+					))}
+					<button
+						type="button"
+						onClick={handleAddEvent}
+						className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+					>
+						<Plus className="w-3.5 h-3.5" />
+						Add event
+					</button>
+				</Section>
+			</div>
+		</div>
+	);
+}
+
+function LifeEventCard({
+	event,
+	onUpdate,
+	onRemove,
+}: {
+	event: LifeEvent;
+	onUpdate: (updates: Partial<LifeEvent>) => void;
+	onRemove: () => void;
+}) {
+	return (
+		<div className="bg-slate-50 rounded-lg p-3 space-y-2 relative group">
+			<button
+				type="button"
+				onClick={onRemove}
+				className="absolute top-2 right-2 text-slate-300 hover:text-slate-500 transition-colors"
+			>
+				<X className="w-3.5 h-3.5" />
+			</button>
+
+			<input
+				type="text"
+				value={event.label}
+				onChange={(e) => onUpdate({ label: e.target.value })}
+				placeholder="e.g., CPP benefits"
+				className="w-full text-sm font-medium text-slate-700 bg-transparent border-none outline-none placeholder:text-slate-300 pr-6"
+			/>
+
+			<div className="flex items-center gap-2">
+				<select
+					value={event.type}
+					onChange={(e) => onUpdate({ type: e.target.value as "income" | "expense" })}
+					className="text-xs bg-white border border-slate-200 rounded px-1.5 py-1 text-slate-600"
+				>
+					<option value="income">Income</option>
+					<option value="expense">Expense</option>
+				</select>
+				<CurrencyInput
+					prefix="$"
+					decimalsLimit={0}
+					groupSeparator=","
+					value={event.monthlyAmount}
+					onValueChange={(v) => onUpdate({ monthlyAmount: v ? Number.parseFloat(v) : 0 })}
+					placeholder="$/mo"
+					className="w-20 text-xs text-right bg-white border border-slate-200 rounded px-1.5 py-1 text-slate-600"
+				/>
+				<span className="text-xs text-slate-400">/mo</span>
+			</div>
+
+			<div className="flex items-center gap-2 text-xs text-slate-500">
+				<span>From</span>
+				<input
+					type="month"
+					value={event.startDate}
+					onChange={(e) => onUpdate({ startDate: e.target.value })}
+					className="bg-white border border-slate-200 rounded px-1.5 py-1 text-slate-600"
+				/>
+			</div>
+			<div className="flex items-center gap-2 text-xs text-slate-500">
+				<span>Until</span>
+				<input
+					type="month"
+					value={event.endDate ?? ""}
+					onChange={(e) => {
+						const val = e.target.value;
+						onUpdate({ endDate: val || undefined });
+					}}
+					className="bg-white border border-slate-200 rounded px-1.5 py-1 text-slate-600"
+				/>
+				{!event.endDate && (
+					<span className="text-slate-300 italic">forever</span>
+				)}
 			</div>
 		</div>
 	);

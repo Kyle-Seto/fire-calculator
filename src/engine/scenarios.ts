@@ -29,6 +29,7 @@ function clonePersona(persona: Persona): Persona {
     accounts: persona.accounts.map((a) => ({ ...a })),
     housing: { ...persona.housing },
     partner: persona.partner ? { ...persona.partner } : undefined,
+    lifeEvents: persona.lifeEvents?.map((e) => ({ ...e })),
   };
 }
 

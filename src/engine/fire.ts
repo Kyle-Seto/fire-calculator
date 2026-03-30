@@ -6,6 +6,7 @@ import {
   calculateMarginalRate,
   calculateAfterTaxPortfolioValue,
 } from "@/engine/tax";
+import { resolveFinancialsAtYear } from "@/engine/lifeEvents";
 
 export function calculatePortfolioTotal(accounts: Account[]): number {
   return accounts.reduce((sum, account) => sum + account.balance, 0);
@@ -70,6 +71,41 @@ export function calculateYearsToFI(
   return years;
 }
 
+/**
+ * Year-by-year FIRE calculation that accounts for life events
+ * (income/expenses that change at different ages).
+ */
+export function calculateYearsToFIWithEvents(
+  currentPortfolio: number,
+  persona: Persona,
+  fireNumber: number,
+  realReturnRate: number,
+  maxYears: number = 80,
+): number {
+  if (currentPortfolio >= fireNumber) return 0;
+
+  let portfolio = currentPortfolio;
+  const r = realReturnRate;
+
+  for (let year = 0; year < maxYears; year++) {
+    const { annualIncome, annualExpenses } = resolveFinancialsAtYear(persona, year);
+    const annualSavings = annualIncome - annualExpenses;
+
+    portfolio = portfolio * (1 + r) + annualSavings;
+
+    if (portfolio >= fireNumber) {
+      // Interpolate the fractional year
+      const prevPortfolio = (portfolio - annualSavings) / (1 + r);
+      const needed = fireNumber - prevPortfolio;
+      const gained = portfolio - prevPortfolio;
+      const fraction = gained > 0 ? needed / gained : 1;
+      return year + fraction;
+    }
+  }
+
+  return Infinity;
+}
+
 export function calculateFireDate(yearsToFI: number): Date | null {
   if (!Number.isFinite(yearsToFI)) return null;
 
@@ -124,12 +160,10 @@ export function calculateAllResults(
   const savingsRate = calculateSavingsRate(annualIncome, annualExpenses);
   const annualSavings = annualIncome - annualExpenses;
 
-  const yearsToFI = calculateYearsToFI(
-    portfolioTotal,
-    annualSavings,
-    fireNumber,
-    DEFAULTS.realReturnMean,
-  );
+  const hasEvents = (persona.lifeEvents ?? []).length > 0;
+  const yearsToFI = hasEvents
+    ? calculateYearsToFIWithEvents(portfolioTotal, persona, fireNumber, DEFAULTS.realReturnMean)
+    : calculateYearsToFI(portfolioTotal, annualSavings, fireNumber, DEFAULTS.realReturnMean);
 
   const fireDateEstimate = calculateFireDate(yearsToFI);
   const fireProgress = calculateFireProgress(portfolioTotal, fireNumber);

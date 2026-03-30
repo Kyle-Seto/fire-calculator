@@ -80,7 +80,7 @@ export function ResultsPanel() {
 							value={formatFireDate(results.fireDateEstimate)}
 							subtitle={
 								Number.isFinite(results.yearsToFI) && results.yearsToFI > 0
-									? `${formatYears(results.yearsToFI)} from now`
+									? `at age ${Math.round(persona.age + results.yearsToFI)}`
 									: undefined
 							}
 						/>
