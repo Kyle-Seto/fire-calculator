@@ -7,8 +7,8 @@
 		"dev": "vite",
 		"build": "tsgo -b && vite build",
 		"preview": "vite preview",
-		"check": "biome check --write .",
-		"lint": "trunk check",
+		"check": "trunk check --all",
+		"fmt": "trunk fmt --all",
 		"typecheck": "tsgo --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest"

@@ -1,17 +1,16 @@
 import { useMemo } from "react";
 import {
-	AreaChart,
 	Area,
-	XAxis,
-	YAxis,
+	AreaChart,
 	CartesianGrid,
-	Tooltip,
 	ReferenceDot,
 	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
 } from "recharts";
-
-import { calculateYearsToFI, calculateFireNumber } from "@/engine/fire";
 import { DEFAULTS } from "@/data/constants";
+import { calculateFireNumber, calculateYearsToFI } from "@/engine/fire";
 import { formatPercent } from "@/lib/utils";
 
 type SavingsRateChartProps = {
@@ -41,12 +40,7 @@ export function SavingsRateChart({
 			const annualSavings = impliedIncome - annualExpenses;
 
 			// Start from zero portfolio to show the pure savings rate relationship
-			const years = calculateYearsToFI(
-				0,
-				annualSavings,
-				fireNumber,
-				DEFAULTS.realReturnMean,
-			);
+			const years = calculateYearsToFI(0, annualSavings, fireNumber, DEFAULTS.realReturnMean);
 
 			return {
 				savingsRate: rate,
@@ -57,8 +51,7 @@ export function SavingsRateChart({
 
 	// Find where the current savings rate falls on the curve
 	const currentPoint = useMemo(() => {
-		if (currentSavingsRate === null || !Number.isFinite(currentYearsToFI))
-			return null;
+		if (currentSavingsRate === null || !Number.isFinite(currentYearsToFI)) return null;
 
 		const roundedRate = Math.round(currentSavingsRate);
 		const yearsVal = Math.min(currentYearsToFI, 99);
@@ -84,14 +77,27 @@ export function SavingsRateChart({
 					tickLine={false}
 					axisLine={{ stroke: "#e2e8f0" }}
 					tickFormatter={(v: number) => `${v}%`}
-					label={{ value: "Savings Rate", position: "insideBottomRight", offset: -4, fontSize: 11, fill: "#94a3b8" }}
+					label={{
+						value: "Savings Rate",
+						position: "insideBottomRight",
+						offset: -4,
+						fontSize: 11,
+						fill: "#94a3b8",
+					}}
 				/>
 				<YAxis
 					tick={{ fontSize: 11, fill: "#94a3b8" }}
 					tickLine={false}
 					axisLine={false}
 					width={50}
-					label={{ value: "Years", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "#94a3b8" }}
+					label={{
+						value: "Years",
+						angle: -90,
+						position: "insideLeft",
+						offset: 10,
+						fontSize: 11,
+						fill: "#94a3b8",
+					}}
 					domain={[0, "auto"]}
 				/>
 

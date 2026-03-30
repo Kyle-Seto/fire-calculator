@@ -40,9 +40,7 @@ export function FireTooltip({ term, children }: FireTooltipProps) {
 	return (
 		<Tooltip.Root delayDuration={300}>
 			<Tooltip.Trigger asChild>
-				<span className="cursor-help border-b border-dotted border-slate-400">
-					{children}
-				</span>
+				<span className="cursor-help border-b border-dotted border-slate-400">{children}</span>
 			</Tooltip.Trigger>
 			<Tooltip.Portal>
 				<Tooltip.Content

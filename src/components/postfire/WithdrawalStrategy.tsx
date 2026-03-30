@@ -1,24 +1,18 @@
 import { useMemo } from "react";
-import { useFireStore } from "@/store/useFireStore";
-import { generateWithdrawalPlan } from "@/engine/withdrawals";
-import { calculateTotalTax } from "@/engine/tax";
 import { calculateAnnualExpenses } from "@/engine/fire";
-import { formatCurrency, cn } from "@/lib/utils";
+import { calculateTotalTax } from "@/engine/tax";
+import { generateWithdrawalPlan } from "@/engine/withdrawals";
+import { cn, formatCurrency } from "@/lib/utils";
+import { useFireStore } from "@/store/useFireStore";
 
 const DISPLAY_YEARS = 10;
 
 export function WithdrawalStrategy() {
 	const persona = useFireStore((s) => s.persona);
 
-	const plan = useMemo(
-		() => generateWithdrawalPlan(persona, DISPLAY_YEARS),
-		[persona],
-	);
+	const plan = useMemo(() => generateWithdrawalPlan(persona, DISPLAY_YEARS), [persona]);
 
-	const totalMeltdown = useMemo(
-		() => plan.reduce((sum, row) => sum + row.rrspMeltdown, 0),
-		[plan],
-	);
+	const totalMeltdown = useMemo(() => plan.reduce((sum, row) => sum + row.rrspMeltdown, 0), [plan]);
 
 	const taxSaved = useMemo(() => {
 		const annualExpenses = calculateAnnualExpenses(persona);
@@ -48,7 +42,8 @@ export function WithdrawalStrategy() {
 					<p className="font-medium">RRSP Meltdown Strategy Active</p>
 					<p className="text-cyan-600">
 						Converting {formatCurrency(totalMeltdown)} from RRSP to TFSA over {DISPLAY_YEARS} years
-						by filling low tax brackets in early retirement — before CPP/OAS push you into higher brackets.
+						by filling low tax brackets in early retirement — before CPP/OAS push you into higher
+						brackets.
 					</p>
 				</div>
 			)}
@@ -126,7 +121,8 @@ export function WithdrawalStrategy() {
 			</div>
 
 			<p className="text-xs text-slate-400 leading-relaxed">
-				RRSP meltdown fills low brackets first, converting excess to TFSA. Non-reg covers remaining expenses. TFSA preserved for last. 7% real return assumed.
+				RRSP meltdown fills low brackets first, converting excess to TFSA. Non-reg covers remaining
+				expenses. TFSA preserved for last. 7% real return assumed.
 			</p>
 		</div>
 	);

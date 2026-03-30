@@ -1,14 +1,7 @@
 import { useMemo } from "react";
-import {
-	PieChart,
-	Pie,
-	Cell,
-	Tooltip,
-	ResponsiveContainer,
-} from "recharts";
-
-import type { Asset } from "@/types";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { formatCurrency, formatPercent } from "@/lib/utils";
+import type { Asset } from "@/types";
 
 type AccountBreakdownProps = {
 	assets: Asset[];
@@ -26,10 +19,7 @@ const ASSET_COLORS: Record<string, string> = {
 	Other: "#f43f5e",
 };
 
-export function AccountBreakdown({
-	assets,
-	portfolioTotal,
-}: AccountBreakdownProps) {
+export function AccountBreakdown({ assets, portfolioTotal }: AccountBreakdownProps) {
 	const chartData = useMemo(() => {
 		return assets
 			.filter((a) => a.value > 0)
@@ -94,9 +84,7 @@ export function AccountBreakdown({
 						/>
 						<span className="text-xs text-slate-600">
 							{entry.name}{" "}
-							<span className="text-slate-400 tabular-nums">
-								{formatPercent(entry.pct, 0)}
-							</span>
+							<span className="text-slate-400 tabular-nums">{formatPercent(entry.pct, 0)}</span>
 						</span>
 					</div>
 				))}

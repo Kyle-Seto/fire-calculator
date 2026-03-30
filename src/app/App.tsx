@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { PersonaSelector } from "@/components/persona/PersonaSelector";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useFireStore } from "@/store/useFireStore";
+import { PersonaSelector } from "@/components/persona/PersonaSelector";
 import { getPersonaById } from "@/data/personas";
+import { useFireStore } from "@/store/useFireStore";
 
 type View = "selector" | "dashboard";
 

@@ -1,15 +1,11 @@
+import { ChevronDown, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useFireStore } from "@/store/useFireStore";
-import {
-	evaluateScenario,
-	evaluateAllScenarios,
-	buildCustomScenario,
-} from "@/engine/scenarios";
-import type { ScenarioResult, CustomDecision } from "@/engine/scenarios";
-import { calculateAllResults } from "@/engine/fire";
 import CurrencyInput from "react-currency-input-field";
+import { calculateAllResults } from "@/engine/fire";
+import type { CustomDecision, ScenarioResult } from "@/engine/scenarios";
+import { buildCustomScenario, evaluateAllScenarios, evaluateScenario } from "@/engine/scenarios";
 import { cn, formatCurrency, formatFireDate, formatPercent } from "@/lib/utils";
-import { Plus, X, ChevronDown } from "lucide-react";
+import { useFireStore } from "@/store/useFireStore";
 
 function formatDelta(deltaMonths: number): string {
 	if (!Number.isFinite(deltaMonths)) {
@@ -46,9 +42,7 @@ function DeltaBadge({ deltaMonths }: { deltaMonths: number }) {
 				isNeutral && "text-slate-300",
 			)}
 		>
-			{isNeutral
-				? "—"
-				: `${isBeneficial ? "−" : "+"}${formatDelta(deltaMonths)}`}
+			{isNeutral ? "—" : `${isBeneficial ? "−" : "+"}${formatDelta(deltaMonths)}`}
 		</span>
 	);
 }
@@ -97,9 +91,7 @@ function ComparisonPanel({
 	const baseFireAge = Number.isFinite(base.yearsToFI)
 		? Math.round(persona.age + base.yearsToFI)
 		: null;
-	const scFireAge = Number.isFinite(sc.yearsToFI)
-		? Math.round(persona.age + sc.yearsToFI)
-		: null;
+	const scFireAge = Number.isFinite(sc.yearsToFI) ? Math.round(persona.age + sc.yearsToFI) : null;
 
 	return (
 		<div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 animate-fade-in">
@@ -138,8 +130,12 @@ function ComparisonPanel({
 				{(base.afterTaxSavingsRate !== null || sc.afterTaxSavingsRate !== null) && (
 					<ComparisonRow
 						label="Savings rate"
-						base={base.afterTaxSavingsRate !== null ? formatPercent(base.afterTaxSavingsRate, 0) : "—"}
-						scenario={sc.afterTaxSavingsRate !== null ? formatPercent(sc.afterTaxSavingsRate, 0) : "—"}
+						base={
+							base.afterTaxSavingsRate !== null ? formatPercent(base.afterTaxSavingsRate, 0) : "—"
+						}
+						scenario={
+							sc.afterTaxSavingsRate !== null ? formatPercent(sc.afterTaxSavingsRate, 0) : "—"
+						}
 					/>
 				)}
 				{base.annualIncome !== sc.annualIncome && (
@@ -365,7 +361,10 @@ export function ScenarioPanel() {
 						/>
 						<button
 							type="button"
-							onClick={() => { setShowBuilder(false); setDraft({ ...EMPTY_DECISION }); }}
+							onClick={() => {
+								setShowBuilder(false);
+								setDraft({ ...EMPTY_DECISION });
+							}}
 							className="text-slate-300 hover:text-slate-500 transition-colors"
 						>
 							<X className="w-4 h-4" />

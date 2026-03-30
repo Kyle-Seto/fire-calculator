@@ -1,27 +1,23 @@
 import { useMemo } from "react";
 import {
-	AreaChart,
 	Area,
-	XAxis,
-	YAxis,
+	AreaChart,
 	CartesianGrid,
-	Tooltip,
 	ReferenceLine,
 	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
 } from "recharts";
-
-import type { MonteCarloResults } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import type { MonteCarloResults } from "@/types";
 
 type PortfolioFanChartProps = {
 	monteCarloResults: MonteCarloResults | null;
 	fireNumber: number;
 };
 
-export function PortfolioFanChart({
-	monteCarloResults,
-	fireNumber,
-}: PortfolioFanChartProps) {
+export function PortfolioFanChart({ monteCarloResults, fireNumber }: PortfolioFanChartProps) {
 	const data = useMemo(() => {
 		if (!monteCarloResults) return [];
 
@@ -61,10 +57,7 @@ export function PortfolioFanChart({
 
 	if (!monteCarloResults || data.length === 0) return null;
 
-	const maxValue = Math.max(
-		...data.map((d) => d.p90),
-		fireNumber * 1.1,
-	);
+	const maxValue = Math.max(...data.map((d) => d.p90), fireNumber * 1.1);
 
 	return (
 		<ResponsiveContainer width="100%" height={320}>
@@ -76,7 +69,13 @@ export function PortfolioFanChart({
 					tick={{ fontSize: 11, fill: "#94a3b8" }}
 					tickLine={false}
 					axisLine={{ stroke: "#e2e8f0" }}
-					label={{ value: "Years", position: "insideBottomRight", offset: -4, fontSize: 11, fill: "#94a3b8" }}
+					label={{
+						value: "Years",
+						position: "insideBottomRight",
+						offset: -4,
+						fontSize: 11,
+						fill: "#94a3b8",
+					}}
 				/>
 				<YAxis
 					tickFormatter={(v: number) => formatCurrency(v)}

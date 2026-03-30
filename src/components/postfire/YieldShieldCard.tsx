@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { useFireStore } from "@/store/useFireStore";
 import { calculateYieldShield } from "@/engine/withdrawals";
-import { formatCurrency, formatPercent, cn } from "@/lib/utils";
+import { cn, formatCurrency, formatPercent } from "@/lib/utils";
+import { useFireStore } from "@/store/useFireStore";
 
 export function YieldShieldCard() {
 	const persona = useFireStore((s) => s.persona);
@@ -10,10 +10,7 @@ export function YieldShieldCard() {
 
 	if (!shield) return null;
 
-	const coveragePercent = Math.min(
-		(shield.annualYieldIncome / shield.annualExpenses) * 100,
-		100,
-	);
+	const coveragePercent = Math.min((shield.annualYieldIncome / shield.annualExpenses) * 100, 100);
 
 	const status: "green" | "yellow" | "red" = shield.isFullyCovered
 		? "green"
@@ -45,9 +42,7 @@ export function YieldShieldCard() {
 				<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
 					Yield Shield
 				</span>
-				<span className={cn("text-xs font-semibold", statusColor)}>
-					{statusLabel}
-				</span>
+				<span className={cn("text-xs font-semibold", statusColor)}>{statusLabel}</span>
 			</div>
 
 			<div className="flex items-baseline gap-8">

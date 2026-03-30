@@ -18,10 +18,10 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
 	return (
 		<div className="bg-slate-50/70 rounded-2xl px-5 py-4 space-y-2">
 			<div className="flex items-start justify-between gap-3">
-				<h3 className="text-sm font-medium text-slate-700 leading-snug">
-					{rec.title}
-				</h3>
-				<span className={`shrink-0 text-[10px] font-medium uppercase tracking-wider ${categoryColors[rec.category]}`}>
+				<h3 className="text-sm font-medium text-slate-700 leading-snug">{rec.title}</h3>
+				<span
+					className={`shrink-0 text-[10px] font-medium uppercase tracking-wider ${categoryColors[rec.category]}`}
+				>
 					{categoryLabels[rec.category]}
 				</span>
 			</div>
