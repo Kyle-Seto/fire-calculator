@@ -12,14 +12,15 @@ export const PERSONA_TEMPLATES: PersonaTemplate[] = [
     age: 22,
     annualIncome: 37_000,
     monthlySpending: 700,
-    accounts: [
-      { type: "Cash", balance: 40_000 },
+    assets: [
+      { id: "si-cash", label: "Savings", type: "Cash", value: 40_000 },
+      { id: "si-fhsa", label: "FHSA", type: "FHSA", value: 8_000 },
     ],
+    liabilities: [],
     housing: {
       type: "rent",
       monthlyAmount: 1_250,
     },
-    debt: 0,
     retirementStatus: "accumulating",
   },
   {
@@ -33,17 +34,23 @@ export const PERSONA_TEMPLATES: PersonaTemplate[] = [
     age: 53,
     annualIncome: 219_567,
     monthlySpending: 7_419,
-    accounts: [
-      { type: "RRSP", balance: 450_000 },
-      { type: "TFSA", balance: 380_000 },
-      { type: "NonRegistered", balance: 170_000 },
+    assets: [
+      { id: "jj-pretax", label: "Pretax (401k/IRA)", type: "RRSP", value: 450_000 },
+      { id: "jj-roth", label: "Roth", type: "TFSA", value: 380_000 },
+      { id: "jj-taxable", label: "Taxable", type: "NonRegistered", value: 170_000 },
+      { id: "jj-home", label: "Primary residence", type: "Property", value: 575_000 },
+      { id: "jj-rental", label: "Rental property", type: "Property", value: 526_000 },
+      { id: "jj-boat", label: "Sailboat", type: "Other", value: 50_000 },
+      { id: "jj-cars", label: "Vehicles", type: "Vehicle", value: 22_000 },
+    ],
+    liabilities: [
+      { id: "jj-mortgage1", label: "Primary mortgage", balance: 243_452 },
+      { id: "jj-mortgage2", label: "Rental mortgage", balance: 170_160 },
     ],
     housing: {
       type: "own",
       monthlyAmount: 1_306,
-      mortgageRemaining: 243_452,
     },
-    debt: 170_160,
     lifeEvents: [
       {
         id: "jj-rental-income",
@@ -73,18 +80,22 @@ export const PERSONA_TEMPLATES: PersonaTemplate[] = [
       "Can you FIRE with significant debt? RRSP drawdown strategy to avoid OAS clawback.",
     age: 55,
     annualIncome: 100_000,
-    monthlySpending: 1_680,
-    accounts: [
-      { type: "RRSP", balance: 849_000 },
-      { type: "TFSA", balance: 209_000 },
-      { type: "NonRegistered", balance: 220_000 },
-      { type: "Cash", balance: 65_000 },
+    monthlySpending: 1_640, // donations ~$700 + groceries/transit/misc ~$940 (excl $1K/mo savings)
+    assets: [
+      { id: "rwd-rrsp", label: "RRSP", type: "RRSP", value: 849_000 },
+      { id: "rwd-tfsa", label: "TFSA", type: "TFSA", value: 209_000 },
+      { id: "rwd-nonreg", label: "Non-registered", type: "NonRegistered", value: 220_000 },
+      { id: "rwd-cash", label: "HISA", type: "Cash", value: 65_000 },
+      { id: "rwd-home", label: "Townhouse", type: "Property", value: 950_000 },
+    ],
+    liabilities: [
+      { id: "rwd-heloc", label: "HELOC", balance: 233_000 },
+      { id: "rwd-invloan", label: "Investment loan", balance: 200_000 },
     ],
     housing: {
       type: "own",
       monthlyAmount: 1_730,
     },
-    debt: 433_000,
     lifeEvents: [
       {
         id: "rwd-investment-loan",
@@ -129,16 +140,17 @@ export const PERSONA_TEMPLATES: PersonaTemplate[] = [
     age: 37,
     annualIncome: 130_000,
     monthlySpending: 2_784,
-    accounts: [
-      { type: "RRSP", balance: 137_237 },
-      { type: "TFSA", balance: 135_591 },
-      { type: "NonRegistered", balance: 66_884 },
+    assets: [
+      { id: "ivf-rrsp", label: "RRSP", type: "RRSP", value: 137_237 },
+      { id: "ivf-tfsa", label: "TFSA", type: "TFSA", value: 135_591 },
+      { id: "ivf-margin", label: "Margin account", type: "NonRegistered", value: 46_889 },
+      { id: "ivf-fhsa", label: "FHSA", type: "FHSA", value: 19_295 },
     ],
+    liabilities: [],
     housing: {
       type: "rent",
       monthlyAmount: 2_350,
     },
-    debt: 0,
     lifeEvents: [
       {
         id: "ivf-egg-freezing",
@@ -165,6 +177,13 @@ export const PERSONA_TEMPLATES: PersonaTemplate[] = [
       },
     ],
     retirementStatus: "accumulating",
+    resp: {
+      balance: 0,
+      contributions: 0,
+      cesgReceived: 0,
+      beneficiaryAge: 0,
+      annualContribution: 2_500,
+    },
   },
   {
     id: "mr-geo-arbitrage",
@@ -177,16 +196,17 @@ export const PERSONA_TEMPLATES: PersonaTemplate[] = [
     age: 53,
     annualIncome: 111_000,
     monthlySpending: 3_100,
-    accounts: [
-      { type: "NonRegistered", balance: 65_000 },
-      { type: "Cash", balance: 15_000 },
+    assets: [
+      { id: "geo-etfs", label: "ETFs", type: "NonRegistered", value: 65_000 },
+      { id: "geo-cash", label: "Cash + GICs", type: "Cash", value: 15_000 },
+      { id: "geo-home", label: "Home", type: "Property", value: 620_000 },
+      { id: "geo-vehicles", label: "Vehicles", type: "Vehicle", value: 18_000 },
     ],
+    liabilities: [],
     housing: {
       type: "own",
-      monthlyAmount: 1_900,
-      mortgageRemaining: 20_300,
+      monthlyAmount: 0, // mortgage paid off Dec 2025
     },
-    debt: 0,
     lifeEvents: [
       {
         id: "geo-cpp-oas",
@@ -213,18 +233,21 @@ export const PERSONA_TEMPLATES: PersonaTemplate[] = [
     age: 60,
     annualIncome: 70_103,
     monthlySpending: 2_413,
-    accounts: [
-      { type: "RRSP", balance: 37_695 },
-      { type: "TFSA", balance: 7_300 },
-      { type: "NonRegistered", balance: 15_000 },
-      { type: "Cash", balance: 10_000 },
+    assets: [
+      { id: "hb-rrsp", label: "RRSP", type: "RRSP", value: 37_695 },
+      { id: "hb-tfsa", label: "TFSA", type: "TFSA", value: 7_300 },
+      { id: "hb-inv", label: "Investments", type: "NonRegistered", value: 15_000 },
+      { id: "hb-cash", label: "Cash", type: "Cash", value: 10_000 },
+      { id: "hb-home", label: "Home", type: "Property", value: 300_000 },
+      { id: "hb-car", label: "Vehicle", type: "Vehicle", value: 28_000 },
+    ],
+    liabilities: [
+      { id: "hb-mortgage", label: "Mortgage", balance: 139_141 },
     ],
     housing: {
       type: "own",
       monthlyAmount: 926,
-      mortgageRemaining: 139_141,
     },
-    debt: 0,
     lifeEvents: [
       {
         id: "hb-pension",

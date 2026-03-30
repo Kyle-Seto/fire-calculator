@@ -27,7 +27,7 @@ const ACCENT_TEXT: Record<string, string> = {
 };
 
 function computeStats(persona: PersonaTemplate) {
-	const totalSavings = calculatePortfolioTotal(persona.accounts);
+	const totalSavings = calculatePortfolioTotal(persona.assets);
 	const annualExpenses = calculateAnnualExpenses(persona);
 	const savingsRate = calculateSavingsRate(persona.annualIncome, annualExpenses);
 	return { totalSavings, savingsRate };

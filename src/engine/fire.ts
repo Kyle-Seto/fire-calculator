@@ -1,4 +1,4 @@
-import type { Account, FireResults, FireType, Persona } from "@/types";
+import { INVESTABLE_TYPES, type Asset, type FireResults, type FireType, type Persona } from "@/types";
 import { DEFAULTS, FIRE_THRESHOLDS } from "@/data/constants";
 import {
   calculateAfterTaxIncome,
@@ -8,8 +8,16 @@ import {
 } from "@/engine/tax";
 import { resolveFinancialsAtYear } from "@/engine/lifeEvents";
 
-export function calculatePortfolioTotal(accounts: Account[]): number {
-  return accounts.reduce((sum, account) => sum + account.balance, 0);
+/** Sum of investable asset balances only. */
+export function calculatePortfolioTotal(assets: Asset[]): number {
+  return assets
+    .filter((a) => (INVESTABLE_TYPES as readonly string[]).includes(a.type))
+    .reduce((sum, a) => sum + a.value, 0);
+}
+
+/** Sum of ALL asset values. */
+export function calculateTotalAssets(assets: Asset[]): number {
+  return assets.reduce((sum, a) => sum + a.value, 0);
 }
 
 export function calculateAnnualExpenses(persona: Persona): number {
@@ -41,24 +49,18 @@ export function calculateYearsToFI(
 
   const r = realReturnRate;
 
-  // Zero or near-zero return rate: linear projection
   if (Math.abs(r) < 1e-9) {
     if (annualSavings <= 0) return Infinity;
     return (fireNumber - currentPortfolio) / annualSavings;
   }
 
-  // No savings, but portfolio exists: compound growth only
   if (annualSavings === 0 && currentPortfolio > 0) {
     const years = Math.log(fireNumber / currentPortfolio) / Math.log(1 + r);
     return years > 0 && Number.isFinite(years) ? years : Infinity;
   }
 
-  // No savings and no portfolio
   if (annualSavings === 0 && currentPortfolio === 0) return Infinity;
 
-  // Normal case: future value of growing annuity formula solved for n
-  // FV = P*(1+r)^n + S*((1+r)^n - 1)/r = fireNumber
-  // Rearranged: n = ln((fireNumber*r + S) / (P*r + S)) / ln(1 + r)
   const numerator = fireNumber * r + annualSavings;
   const denominator = currentPortfolio * r + annualSavings;
 
@@ -71,10 +73,6 @@ export function calculateYearsToFI(
   return years;
 }
 
-/**
- * Year-by-year FIRE calculation that accounts for life events
- * (income/expenses that change at different ages).
- */
 export function calculateYearsToFIWithEvents(
   currentPortfolio: number,
   persona: Persona,
@@ -94,7 +92,6 @@ export function calculateYearsToFIWithEvents(
     portfolio = portfolio * (1 + r) + annualSavings;
 
     if (portfolio >= fireNumber) {
-      // Interpolate the fractional year
       const prevPortfolio = (portfolio - annualSavings) / (1 + r);
       const needed = fireNumber - prevPortfolio;
       const gained = portfolio - prevPortfolio;
@@ -124,7 +121,6 @@ export function classifyFireType(
   annualIncome: number,
   fireNumber: number,
 ): FireType {
-  // Barista FIRE: still earning income, not yet FI, but income covers expenses
   if (
     annualIncome > 0 &&
     portfolio < fireNumber &&
@@ -150,7 +146,11 @@ export function calculateAllResults(
   persona: Persona,
   withdrawalRate: number = DEFAULTS.withdrawalRate,
 ): Omit<FireResults, "monteCarloResults"> {
-  const portfolioTotal = calculatePortfolioTotal(persona.accounts);
+  const portfolioTotal = calculatePortfolioTotal(persona.assets);
+  const totalAssets = calculateTotalAssets(persona.assets);
+  const totalLiabilities = persona.liabilities.reduce((sum, l) => sum + l.balance, 0);
+  const netWorth = totalAssets - totalLiabilities;
+
   const annualExpenses = calculateAnnualExpenses(persona);
   const monthlyExpenses = annualExpenses / 12;
   const monthlyIncome = persona.annualIncome / 12;
@@ -174,7 +174,6 @@ export function calculateAllResults(
     fireNumber,
   );
 
-  // After-tax calculations (Ontario/federal)
   const afterTaxIncome = calculateAfterTaxIncome(annualIncome);
   const totalTax = calculateTotalTax(annualIncome);
   const marginalRate = calculateMarginalRate(annualIncome);
@@ -182,7 +181,7 @@ export function calculateAllResults(
     afterTaxIncome > 0
       ? ((afterTaxIncome - annualExpenses) / afterTaxIncome) * 100
       : null;
-  const afterTaxPortfolioValue = calculateAfterTaxPortfolioValue(persona.accounts);
+  const afterTaxPortfolioValue = calculateAfterTaxPortfolioValue(persona.assets);
   const afterTaxFireProgress = calculateFireProgress(afterTaxPortfolioValue, fireNumber);
 
   return {
@@ -194,6 +193,9 @@ export function calculateAllResults(
     monthlyExpenses,
     annualExpenses,
     portfolioTotal,
+    netWorth,
+    totalAssets,
+    totalLiabilities,
     fireProgress,
     fireType,
     afterTaxIncome,

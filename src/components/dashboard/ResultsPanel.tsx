@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useFireStore } from "@/store/useFireStore";
-import { formatCurrency, formatFireDate, formatPercent, formatYears } from "@/lib/utils";
+import { formatCurrency, formatFireDate, formatPercent } from "@/lib/utils";
 import { MetricCard, MetricSkeleton } from "./MetricCard";
 import { PortfolioFanChart } from "@/components/charts/PortfolioFanChart";
 import { SavingsRateChart } from "@/components/charts/SavingsRateChart";
@@ -8,11 +9,7 @@ import { RecommendationList } from "@/components/recommendations/RecommendationL
 import { ScenarioPanel } from "@/components/scenarios/ScenarioPanel";
 import { PostFireDashboard } from "@/components/postfire/PostFireDashboard";
 import { FireTooltip } from "@/components/ui/FireTooltip";
-import { AlertCircle } from "lucide-react";
-
-function formatFireType(type: string): string {
-	return `${type} FIRE`;
-}
+import { AlertCircle, ChevronDown } from "lucide-react";
 
 export function ResultsPanel() {
 	const results = useFireStore((s) => s.results);
@@ -20,6 +17,7 @@ export function ResultsPanel() {
 	const error = useFireStore((s) => s.error);
 	const persona = useFireStore((s) => s.persona);
 	const isRetired = persona.retirementStatus === "retired" || (results?.fireProgress ?? 0) >= 100;
+	const [detailsOpen, setDetailsOpen] = useState(false);
 
 	if (error) {
 		return (
@@ -60,227 +58,325 @@ export function ResultsPanel() {
 	return (
 		<div className="flex-1 p-6 md:p-10 overflow-y-auto">
 			<div className="max-w-2xl mx-auto space-y-8">
-				{/* Hero metric */}
-				<div className="text-center py-6 border-b border-slate-100">
-					{isRetired ? (
-						<MetricCard
-							variant="hero"
-							label={<FireTooltip term="Portfolio Survival">Portfolio Survival</FireTooltip>}
-							value={successRate !== null ? formatPercent(successRate, 0) : "—"}
-							subtitle={
-								mc
-									? `${mc.runs.toLocaleString()} Monte Carlo simulations over ${results.yearsToFI > 0 ? formatYears(results.yearsToFI) : "50 years"}`
-									: undefined
-							}
-						/>
-					) : (
-						<MetricCard
-							variant="hero"
-							label="Estimated FIRE Date"
-							value={formatFireDate(results.fireDateEstimate)}
-							subtitle={
-								Number.isFinite(results.yearsToFI) && results.yearsToFI > 0
-									? `at age ${Math.round(persona.age + results.yearsToFI)}`
-									: undefined
-							}
-						/>
-					)}
-				</div>
 
-				{/* Success rate bar */}
-				{successRate !== null && !isRetired && (
-					<div className="space-y-2">
-						<div className="flex justify-between items-baseline">
-							<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-								<FireTooltip term="Monte Carlo">Monte Carlo Success</FireTooltip>
-							</span>
-							<span className="text-sm font-semibold text-slate-700 tabular-nums">
-								{formatPercent(successRate, 0)}
-							</span>
-						</div>
-						<div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-							<div
-								className="h-full rounded-full transition-all duration-500 ease-out"
-								style={{
-									width: `${Math.min(successRate, 100)}%`,
-									backgroundColor:
-										successRate >= 90
-											? "var(--color-fire-green)"
-											: successRate >= 70
-												? "var(--color-fire-yellow)"
-												: "var(--color-fire-red)",
-								}}
-							/>
-						</div>
-						<p className="text-xs text-slate-400">
-							{mc?.runs.toLocaleString()} simulations &middot;{" "}
-							{successRate >= 90 ? "Strong" : successRate >= 70 ? "Moderate" : "Needs work"}
-						</p>
+				{/* ── Baseline Summary ── */}
+				<div className="bg-slate-50 rounded-2xl p-5">
+					<p className="text-xs text-slate-400 uppercase tracking-wider font-medium mb-3">
+						Your current plan
+					</p>
+					<div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+						{isRetired ? (
+							<>
+								<div>
+									<p className="text-2xl font-bold text-slate-900 tabular-nums">
+										{successRate !== null ? formatPercent(successRate, 0) : "—"}
+									</p>
+									<p className="text-xs text-slate-400">portfolio survival</p>
+								</div>
+								<div>
+									<p className="text-lg font-semibold text-slate-700 tabular-nums">
+										{formatCurrency(results.portfolioTotal)}
+									</p>
+									<p className="text-xs text-slate-400">portfolio</p>
+								</div>
+								<div>
+									<p className="text-lg font-semibold text-slate-700 tabular-nums">
+										{formatCurrency(results.monthlyExpenses)}
+									</p>
+									<p className="text-xs text-slate-400">/mo spending</p>
+								</div>
+							</>
+						) : (
+							<>
+								<div>
+									<p className="text-2xl font-bold text-slate-900 tabular-nums">
+										{formatFireDate(results.fireDateEstimate)}
+									</p>
+									<p className="text-xs text-slate-400">
+										{Number.isFinite(results.yearsToFI) && results.yearsToFI > 0
+											? `FIRE at age ${Math.round(persona.age + results.yearsToFI)}`
+											: "FIRE date"}
+									</p>
+								</div>
+								<div>
+									<p className="text-lg font-semibold text-slate-700 tabular-nums">
+										{formatCurrency(results.portfolioTotal)}
+									</p>
+									<p className="text-xs text-slate-400">
+										of {formatCurrency(results.fireNumber)}
+									</p>
+								</div>
+								{results.afterTaxSavingsRate !== null && (
+									<div>
+										<p className="text-lg font-semibold text-slate-700 tabular-nums">
+											{formatPercent(results.afterTaxSavingsRate, 0)}
+										</p>
+										<p className="text-xs text-slate-400">savings rate</p>
+									</div>
+								)}
+								{results.totalLiabilities > 0 && (
+									<div>
+										<p className="text-lg font-semibold text-slate-700 tabular-nums">
+											{formatCurrency(results.netWorth)}
+										</p>
+										<p className="text-xs text-slate-400">net worth</p>
+									</div>
+								)}
+							</>
+						)}
 					</div>
-				)}
 
-				{/* Metric grid */}
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1">
-					<MetricCard
-						label={<FireTooltip term="FIRE Number">FIRE Number</FireTooltip>}
-						value={formatCurrency(results.fireNumber)}
-						subtitle="Target portfolio"
-					/>
-					<MetricCard
-						label="Portfolio"
-						value={formatCurrency(results.portfolioTotal)}
-						subtitle={`${formatPercent(results.fireProgress, 0)} of target`}
-					/>
-					<MetricCard
-						label={<FireTooltip term="FIRE Type">FIRE Type</FireTooltip>}
-						value={formatFireType(results.fireType)}
-					/>
-
-					{isRetired ? (
-						<>
-							<MetricCard
-								label="Annual Withdrawal"
-								value={formatCurrency(results.annualExpenses)}
-								subtitle={`${formatPercent((results.annualExpenses / results.portfolioTotal) * 100, 1)} rate`}
-							/>
-							<MetricCard
-								label="Monthly Spending"
-								value={formatCurrency(results.monthlyExpenses)}
-							/>
-							{persona.cashCushion !== undefined && (
-								<MetricCard
-									label="Cash Cushion"
-									value={formatCurrency(persona.cashCushion)}
+					{/* FIRE progress bar */}
+					{!isRetired && (
+						<div className="mt-4">
+							<div className="flex justify-between items-baseline mb-1">
+								<span className="text-xs text-slate-400">
+									<FireTooltip term="FIRE Progress">Progress</FireTooltip>
+								</span>
+								<span className="text-xs font-medium text-slate-500 tabular-nums">
+									{formatPercent(Math.min(results.fireProgress, 100), 0)}
+								</span>
+							</div>
+							<div className="h-2 bg-slate-200/70 rounded-full overflow-hidden">
+								<div
+									className="h-full rounded-full bg-fire-blue transition-all duration-500 ease-out"
+									style={{ width: `${Math.min(results.fireProgress, 100)}%` }}
 								/>
-							)}
-						</>
-					) : (
-						<>
-							<MetricCard
-								label={<FireTooltip term="Savings Rate">Savings Rate</FireTooltip>}
-								value={
-									results.afterTaxSavingsRate !== null
-										? formatPercent(results.afterTaxSavingsRate, 1)
-										: "N/A"
-								}
-								subtitle="Of after-tax income"
-							/>
-							<MetricCard
-								label="After-Tax Income"
-								value={formatCurrency(results.afterTaxIncome)}
-								subtitle={`${formatCurrency(results.monthlyIncome * 12)} gross`}
-							/>
-							<MetricCard
-								label="Monthly Expenses"
-								value={formatCurrency(results.monthlyExpenses)}
-							/>
-						</>
+							</div>
+						</div>
+					)}
+
+					{/* Monte Carlo bar */}
+					{successRate !== null && !isRetired && (
+						<div className="mt-3">
+							<div className="flex justify-between items-baseline mb-1">
+								<span className="text-xs text-slate-400">
+									<FireTooltip term="Monte Carlo">Monte Carlo</FireTooltip>
+								</span>
+								<span className="text-xs font-medium text-slate-500 tabular-nums">
+									{formatPercent(successRate, 0)}
+								</span>
+							</div>
+							<div className="h-2 bg-slate-200/70 rounded-full overflow-hidden">
+								<div
+									className="h-full rounded-full transition-all duration-500 ease-out"
+									style={{
+										width: `${Math.min(successRate, 100)}%`,
+										backgroundColor:
+											successRate >= 90
+												? "var(--color-fire-green)"
+												: successRate >= 70
+													? "var(--color-fire-yellow)"
+													: "var(--color-fire-red)",
+									}}
+								/>
+							</div>
+						</div>
 					)}
 				</div>
 
-				{/* Tax & Account Breakdown */}
-				{!isRetired && results.totalTax > 0 && (
-					<div className="bg-slate-50 rounded-xl p-5 space-y-3">
-						<h3 className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-							Tax Impact (Ontario + Federal)
-						</h3>
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-							<div>
-								<p className="text-xs text-slate-400">Annual Tax</p>
-								<p className="text-sm font-semibold text-slate-800 tabular-nums">
-									{formatCurrency(results.totalTax)}
-								</p>
-							</div>
-							<div>
-								<p className="text-xs text-slate-400">Marginal Rate</p>
-								<p className="text-sm font-semibold text-slate-800 tabular-nums">
-									{formatPercent(results.marginalRate * 100, 1)}
-								</p>
-							</div>
-							<div>
-								<p className="text-xs text-slate-400">After-Tax Portfolio</p>
-								<p className="text-sm font-semibold text-slate-800 tabular-nums">
-									{formatCurrency(results.afterTaxPortfolioValue)}
-								</p>
-								<p className="text-xs text-slate-400">
-									{formatPercent(results.afterTaxFireProgress, 0)} of FIRE target
-								</p>
-							</div>
-							<div>
-								<p className="text-xs text-slate-400">Tax Drag</p>
-								<p className="text-sm font-semibold text-slate-800 tabular-nums">
-									{formatCurrency(results.portfolioTotal - results.afterTaxPortfolioValue)}
-								</p>
-								<p className="text-xs text-slate-400">
-									Lost to taxes on withdrawal
-								</p>
-							</div>
-						</div>
-					</div>
-				)}
+				{/* ── Decision Modeler (hero) ── */}
+				<ScenarioPanel />
 
-					{/* Post-FIRE tools for retired personas */}
+				{/* ── Post-FIRE tools ── */}
 				{isRetired && <PostFireDashboard />}
 
-				{/* FIRE progress bar */}
-				<div className="space-y-2 pt-2">
-					<div className="flex justify-between items-baseline">
-						<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-							<FireTooltip term="FIRE Progress">FIRE Progress</FireTooltip>
-						</span>
-						<span className="text-sm font-semibold text-slate-700 tabular-nums">
-							{formatPercent(Math.min(results.fireProgress, 100), 0)}
-						</span>
-					</div>
-					<div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-						<div
-							className="h-full rounded-full bg-fire-blue transition-all duration-500 ease-out"
-							style={{ width: `${Math.min(results.fireProgress, 100)}%` }}
-						/>
-					</div>
-				</div>
-
-				{/* Charts */}
-				{mc && (
-					<div className="space-y-3 pt-2">
-						<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-							Portfolio Projections
-						</span>
-						<PortfolioFanChart
-							monteCarloResults={mc}
-							fireNumber={results.fireNumber}
-						/>
-					</div>
-				)}
-
-				{!isRetired && (
-					<div className="space-y-3 pt-2">
-						<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-							Savings Rate vs. Years to FI
-						</span>
-						<SavingsRateChart
-							annualExpenses={results.annualExpenses}
-							currentSavingsRate={results.savingsRate}
-							currentYearsToFI={results.yearsToFI}
-						/>
-					</div>
-				)}
-
-				<div className="space-y-3 pt-2">
-					<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-						Account Breakdown
-					</span>
-					<AccountBreakdown
-						accounts={persona.accounts}
-						portfolioTotal={results.portfolioTotal}
-					/>
-				</div>
-
-				{/* Recommendations */}
+				{/* ── Recommendations ── */}
 				<RecommendationList />
 
-				{/* Scenario modeling — accumulating only */}
-				{!isRetired && <ScenarioPanel />}
+				{/* ── Details (collapsible) ── */}
+				<div>
+					<button
+						type="button"
+						onClick={() => setDetailsOpen(!detailsOpen)}
+						className="flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wider font-medium hover:text-slate-600 transition-colors w-full"
+					>
+						<span>Details</span>
+						<ChevronDown
+							className={`w-3.5 h-3.5 transition-transform ${detailsOpen ? "rotate-180" : ""}`}
+						/>
+						<div className="flex-1 h-px bg-slate-100" />
+					</button>
+
+					{detailsOpen && (
+						<div className="space-y-8 pt-6">
+							{/* Metric grid */}
+							<div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1">
+								<MetricCard
+									label={<FireTooltip term="FIRE Number">FIRE Number</FireTooltip>}
+									value={formatCurrency(results.fireNumber)}
+									subtitle="Target portfolio"
+								/>
+								<MetricCard
+									label="Portfolio"
+									value={formatCurrency(results.portfolioTotal)}
+									subtitle={`${formatPercent(results.fireProgress, 0)} of target`}
+								/>
+								<MetricCard
+									label={<FireTooltip term="FIRE Type">FIRE Type</FireTooltip>}
+									value={`${results.fireType} FIRE`}
+								/>
+
+								{isRetired ? (
+									<>
+										<MetricCard
+											label="Annual Withdrawal"
+											value={formatCurrency(results.annualExpenses)}
+											subtitle={`${formatPercent((results.annualExpenses / results.portfolioTotal) * 100, 1)} rate`}
+										/>
+										<MetricCard
+											label="Monthly Spending"
+											value={formatCurrency(results.monthlyExpenses)}
+										/>
+										{persona.cashCushion !== undefined && (
+											<MetricCard
+												label="Cash Cushion"
+												value={formatCurrency(persona.cashCushion)}
+											/>
+										)}
+									</>
+								) : (
+									<>
+										<MetricCard
+											label={<FireTooltip term="Savings Rate">Savings Rate</FireTooltip>}
+											value={
+												results.afterTaxSavingsRate !== null
+													? formatPercent(results.afterTaxSavingsRate, 1)
+													: "N/A"
+											}
+											subtitle="Of after-tax income"
+										/>
+										<MetricCard
+											label="After-Tax Income"
+											value={formatCurrency(results.afterTaxIncome)}
+											subtitle={`${formatCurrency(results.monthlyIncome * 12)} gross`}
+										/>
+										<MetricCard
+											label="Monthly Expenses"
+											value={formatCurrency(results.monthlyExpenses)}
+										/>
+									</>
+								)}
+
+								{results.totalLiabilities > 0 && (
+									<MetricCard
+										label="Net Worth"
+										value={formatCurrency(results.netWorth)}
+										subtitle={`${formatCurrency(results.totalLiabilities)} in liabilities`}
+									/>
+								)}
+							</div>
+
+							{/* Tax section */}
+							{!isRetired && results.totalTax > 0 && (
+								<div className="bg-slate-50 rounded-xl p-5 space-y-3">
+									<h3 className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+										Tax Impact (Ontario + Federal)
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+										<div>
+											<p className="text-xs text-slate-400">Annual Tax</p>
+											<p className="text-sm font-semibold text-slate-800 tabular-nums">
+												{formatCurrency(results.totalTax)}
+											</p>
+										</div>
+										<div>
+											<p className="text-xs text-slate-400">Marginal Rate</p>
+											<p className="text-sm font-semibold text-slate-800 tabular-nums">
+												{formatPercent(results.marginalRate * 100, 1)}
+											</p>
+										</div>
+										<div>
+											<p className="text-xs text-slate-400">After-Tax Portfolio</p>
+											<p className="text-sm font-semibold text-slate-800 tabular-nums">
+												{formatCurrency(results.afterTaxPortfolioValue)}
+											</p>
+											<p className="text-xs text-slate-400">
+												{formatPercent(results.afterTaxFireProgress, 0)} of FIRE target
+											</p>
+										</div>
+										<div>
+											<p className="text-xs text-slate-400">Tax Drag</p>
+											<p className="text-sm font-semibold text-slate-800 tabular-nums">
+												{formatCurrency(results.portfolioTotal - results.afterTaxPortfolioValue)}
+											</p>
+											<p className="text-xs text-slate-400">
+												Lost to taxes on withdrawal
+											</p>
+										</div>
+									</div>
+								</div>
+							)}
+
+							{/* Charts */}
+							{mc && (
+								<div className="space-y-3">
+									<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+										Portfolio Projections
+									</span>
+									<PortfolioFanChart
+										monteCarloResults={mc}
+										fireNumber={results.fireNumber}
+									/>
+								</div>
+							)}
+
+							{!isRetired && (
+								<div className="space-y-3">
+									<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+										Savings Rate vs. Years to FI
+									</span>
+									<SavingsRateChart
+										annualExpenses={results.annualExpenses}
+										currentSavingsRate={results.savingsRate}
+										currentYearsToFI={results.yearsToFI}
+									/>
+								</div>
+							)}
+
+							<div className="space-y-3">
+								<span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+									Asset Breakdown
+								</span>
+								<AccountBreakdown
+									assets={persona.assets}
+									portfolioTotal={results.portfolioTotal}
+								/>
+							</div>
+
+							{persona.resp && (
+								<div className="bg-slate-50 rounded-xl p-5 space-y-3">
+									<h3 className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+										Education Savings (RESP)
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+										<div>
+											<p className="text-xs text-slate-400">RESP Balance</p>
+											<p className="text-sm font-semibold text-slate-800 tabular-nums">
+												{formatCurrency(persona.resp.balance)}
+											</p>
+										</div>
+										<div>
+											<p className="text-xs text-slate-400">CESG Received</p>
+											<p className="text-sm font-semibold text-slate-800 tabular-nums">
+												{formatCurrency(persona.resp.cesgReceived)}
+											</p>
+										</div>
+										<div>
+											<p className="text-xs text-slate-400">Annual Contribution</p>
+											<p className="text-sm font-semibold text-slate-800 tabular-nums">
+												{formatCurrency(persona.resp.annualContribution ?? 0)}
+											</p>
+										</div>
+									</div>
+									<p className="text-xs text-slate-400">
+										RESP is an education sinking fund and is not included in your FIRE portfolio.
+									</p>
+								</div>
+							)}
+						</div>
+					)}
+				</div>
 
 				{/* Loading overlay */}
 				{isCalculating && results && (

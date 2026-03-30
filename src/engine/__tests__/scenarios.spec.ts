@@ -15,13 +15,13 @@ const basePersona: Persona = {
   age: 30,
   annualIncome: 100_000,
   monthlySpending: 3_000,
-  accounts: [
-    { type: "TFSA", balance: 50_000 },
-    { type: "RRSP", balance: 80_000 },
-    { type: "NonRegistered", balance: 70_000 },
+  assets: [
+    { id: "1", label: "TFSA", type: "TFSA", value: 50_000 },
+    { id: "2", label: "RRSP", type: "RRSP", value: 80_000 },
+    { id: "3", label: "Non-Reg", type: "NonRegistered", value: 70_000 },
   ],
+  liabilities: [],
   housing: { type: "rent", monthlyAmount: 1_500 },
-  debt: 0,
   retirementStatus: "accumulating",
 };
 
@@ -42,13 +42,13 @@ describe("SCENARIOS", () => {
 
   it("scenario apply does not mutate the original persona", () => {
     for (const s of SCENARIOS) {
-      const originalBalance = basePersona.accounts[0].balance;
+      const originalValue = basePersona.assets[0].value;
       const originalSpending = basePersona.monthlySpending;
       const originalIncome = basePersona.annualIncome;
 
       s.apply(basePersona);
 
-      expect(basePersona.accounts[0].balance).toBe(originalBalance);
+      expect(basePersona.assets[0].value).toBe(originalValue);
       expect(basePersona.monthlySpending).toBe(originalSpending);
       expect(basePersona.annualIncome).toBe(originalIncome);
     }

@@ -1,5 +1,5 @@
 import { useFireStore } from "@/store/useFireStore";
-import type { Account, LifeEvent, Persona } from "@/types";
+import type { Asset, AssetType, Liability, LifeEvent, Persona, RESPAccount } from "@/types";
 import CurrencyInput from "react-currency-input-field";
 import { ArrowLeft, Plus, RotateCcw, X } from "lucide-react";
 
@@ -7,11 +7,26 @@ type PersonaEditorProps = {
 	onBack: () => void;
 };
 
-const ACCOUNT_LABELS: Record<string, { label: string; color: string }> = {
-	TFSA: { label: "TFSA", color: "bg-violet-500" },
-	RRSP: { label: "RRSP", color: "bg-cyan-500" },
-	NonRegistered: { label: "Non-Registered", color: "bg-amber-500" },
-	Cash: { label: "Cash", color: "bg-slate-400" },
+const ASSET_TYPE_OPTIONS: { value: AssetType; label: string }[] = [
+	{ value: "TFSA", label: "TFSA" },
+	{ value: "RRSP", label: "RRSP" },
+	{ value: "FHSA", label: "FHSA" },
+	{ value: "NonRegistered", label: "Non-Registered" },
+	{ value: "Cash", label: "Cash" },
+	{ value: "Property", label: "Property" },
+	{ value: "Vehicle", label: "Vehicle" },
+	{ value: "Other", label: "Other" },
+];
+
+const ASSET_COLORS: Record<string, string> = {
+	TFSA: "bg-violet-500",
+	RRSP: "bg-cyan-500",
+	FHSA: "bg-pink-500",
+	NonRegistered: "bg-amber-500",
+	Cash: "bg-slate-400",
+	Property: "bg-emerald-500",
+	Vehicle: "bg-blue-500",
+	Other: "bg-rose-400",
 };
 
 export function PersonaEditor({ onBack }: PersonaEditorProps) {
@@ -24,16 +39,8 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 		updatePersona({ [field]: num });
 	}
 
-	function handleAccountChange(index: number, value: string | undefined) {
-		const num = value ? Number.parseFloat(value) : 0;
-		const newAccounts = persona.accounts.map((acc: Account, i: number) =>
-			i === index ? { ...acc, balance: num } : acc,
-		);
-		updatePersona({ accounts: newAccounts });
-	}
-
 	function handleHousingChange(
-		field: "monthlyAmount" | "mortgageRemaining" | "type",
+		field: "monthlyAmount" | "type",
 		value: string | number | undefined,
 	) {
 		if (field === "type") {
@@ -41,7 +48,6 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 				housing: {
 					...persona.housing,
 					type: value as "rent" | "own",
-					...(value === "rent" ? { mortgageRemaining: undefined } : {}),
 				},
 			});
 		} else {
@@ -51,6 +57,54 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 			});
 		}
 	}
+
+	// ── Assets ──
+
+	function handleAddAsset() {
+		updatePersona({
+			assets: [
+				...persona.assets,
+				{ id: crypto.randomUUID(), label: "", type: "Cash" as AssetType, value: 0 },
+			],
+		});
+	}
+
+	function handleRemoveAsset(assetId: string) {
+		updatePersona({ assets: persona.assets.filter((a) => a.id !== assetId) });
+	}
+
+	function handleUpdateAsset(assetId: string, updates: Partial<Asset>) {
+		updatePersona({
+			assets: persona.assets.map((a) => (a.id === assetId ? { ...a, ...updates } : a)),
+		});
+	}
+
+	// ── Liabilities ──
+
+	function handleAddLiability() {
+		updatePersona({
+			liabilities: [
+				...persona.liabilities,
+				{ id: crypto.randomUUID(), label: "", balance: 0 },
+			],
+		});
+	}
+
+	function handleRemoveLiability(liabilityId: string) {
+		updatePersona({
+			liabilities: persona.liabilities.filter((l) => l.id !== liabilityId),
+		});
+	}
+
+	function handleUpdateLiability(liabilityId: string, updates: Partial<Liability>) {
+		updatePersona({
+			liabilities: persona.liabilities.map((l) =>
+				l.id === liabilityId ? { ...l, ...updates } : l,
+			),
+		});
+	}
+
+	// ── Life Events ──
 
 	const events = persona.lifeEvents ?? [];
 
@@ -143,29 +197,82 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 					</Field>
 				</Section>
 
-				<Section title="Accounts">
-					{persona.accounts.map((account: Account, index: number) => {
-						const meta = ACCOUNT_LABELS[account.type] ?? {
-							label: account.type,
-							color: "bg-slate-400",
-						};
-						return (
-							<Field
-								key={account.type}
-								label={
-									<span className="flex items-center gap-2">
-										<span className={`w-2 h-2 rounded-full ${meta.color}`} />
-										{meta.label}
-									</span>
+				<Section title="Assets">
+					{persona.assets.map((asset) => (
+						<AssetCard
+							key={asset.id}
+							asset={asset}
+							onUpdate={(updates) => handleUpdateAsset(asset.id, updates)}
+							onRemove={() => handleRemoveAsset(asset.id)}
+						/>
+					))}
+					<button
+						type="button"
+						onClick={handleAddAsset}
+						className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+					>
+						<Plus className="w-3.5 h-3.5" />
+						Add asset
+					</button>
+				</Section>
+
+				<Section title="Liabilities">
+					{persona.liabilities.map((liability) => (
+						<LiabilityCard
+							key={liability.id}
+							liability={liability}
+							onUpdate={(updates) => handleUpdateLiability(liability.id, updates)}
+							onRemove={() => handleRemoveLiability(liability.id)}
+						/>
+					))}
+					<button
+						type="button"
+						onClick={handleAddLiability}
+						className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+					>
+						<Plus className="w-3.5 h-3.5" />
+						Add liability
+					</button>
+				</Section>
+
+				<Section title="Education Savings (RESP)">
+					{persona.resp ? (
+						<>
+							<RESPEditor
+								resp={persona.resp}
+								onUpdate={(updates) =>
+									updatePersona({ resp: { ...persona.resp!, ...updates } })
 								}
+							/>
+							<button
+								type="button"
+								onClick={() => updatePersona({ resp: undefined })}
+								className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors pt-1"
 							>
-								<CurrencyField
-									value={account.balance}
-									onValueChange={(v) => handleAccountChange(index, v)}
-								/>
-							</Field>
-						);
-					})}
+								<X className="w-3.5 h-3.5" />
+								Remove RESP
+							</button>
+						</>
+					) : (
+						<button
+							type="button"
+							onClick={() =>
+								updatePersona({
+									resp: {
+										balance: 0,
+										contributions: 0,
+										cesgReceived: 0,
+										beneficiaryAge: 0,
+										annualContribution: 2_500,
+									},
+								})
+							}
+							className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors pt-1"
+						>
+							<Plus className="w-3.5 h-3.5" />
+							Add RESP
+						</button>
+					)}
 				</Section>
 
 				<Section title="Housing">
@@ -185,14 +292,6 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 							onValueChange={(v) => handleHousingChange("monthlyAmount", v)}
 						/>
 					</Field>
-					{persona.housing.type === "own" && (
-						<Field label="Mortgage remaining">
-							<CurrencyField
-								value={persona.housing.mortgageRemaining ?? 0}
-								onValueChange={(v) => handleHousingChange("mortgageRemaining", v)}
-							/>
-						</Field>
-					)}
 				</Section>
 
 				<Section title="Life Events">
@@ -214,6 +313,94 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 					</button>
 				</Section>
 			</div>
+		</div>
+	);
+}
+
+// ── Sub-components ──
+
+function AssetCard({
+	asset,
+	onUpdate,
+	onRemove,
+}: {
+	asset: Asset;
+	onUpdate: (updates: Partial<Asset>) => void;
+	onRemove: () => void;
+}) {
+	const color = ASSET_COLORS[asset.type] ?? "bg-slate-400";
+	return (
+		<div className="flex items-center gap-2 group">
+			<span className={`w-2 h-2 rounded-full shrink-0 ${color}`} />
+			<input
+				type="text"
+				value={asset.label}
+				onChange={(e) => onUpdate({ label: e.target.value })}
+				placeholder="Label"
+				className="flex-1 min-w-0 text-sm text-slate-700 bg-transparent border-none outline-none placeholder:text-slate-300"
+			/>
+			<select
+				value={asset.type}
+				onChange={(e) => onUpdate({ type: e.target.value as AssetType })}
+				className="text-xs bg-transparent border border-slate-200 rounded px-1 py-0.5 text-slate-500 w-24"
+			>
+				{ASSET_TYPE_OPTIONS.map((opt) => (
+					<option key={opt.value} value={opt.value}>{opt.label}</option>
+				))}
+			</select>
+			<CurrencyInput
+				prefix="$"
+				decimalsLimit={0}
+				groupSeparator=","
+				value={asset.value}
+				onValueChange={(v) => onUpdate({ value: v ? Number.parseFloat(v) : 0 })}
+				className="w-24 text-right text-sm bg-transparent border border-slate-200 rounded px-1.5 py-0.5 text-slate-700"
+			/>
+			<button
+				type="button"
+				onClick={onRemove}
+				className="text-slate-300 hover:text-slate-500 transition-colors opacity-0 group-hover:opacity-100"
+			>
+				<X className="w-3.5 h-3.5" />
+			</button>
+		</div>
+	);
+}
+
+function LiabilityCard({
+	liability,
+	onUpdate,
+	onRemove,
+}: {
+	liability: Liability;
+	onUpdate: (updates: Partial<Liability>) => void;
+	onRemove: () => void;
+}) {
+	return (
+		<div className="flex items-center gap-2 group">
+			<span className="w-2 h-2 rounded-full shrink-0 bg-red-400" />
+			<input
+				type="text"
+				value={liability.label}
+				onChange={(e) => onUpdate({ label: e.target.value })}
+				placeholder="e.g., Mortgage"
+				className="flex-1 min-w-0 text-sm text-slate-700 bg-transparent border-none outline-none placeholder:text-slate-300"
+			/>
+			<CurrencyInput
+				prefix="$"
+				decimalsLimit={0}
+				groupSeparator=","
+				value={liability.balance}
+				onValueChange={(v) => onUpdate({ balance: v ? Number.parseFloat(v) : 0 })}
+				className="w-28 text-right text-sm bg-transparent border border-slate-200 rounded px-1.5 py-0.5 text-slate-700"
+			/>
+			<button
+				type="button"
+				onClick={onRemove}
+				className="text-slate-300 hover:text-slate-500 transition-colors opacity-0 group-hover:opacity-100"
+			>
+				<X className="w-3.5 h-3.5" />
+			</button>
 		</div>
 	);
 }
@@ -290,6 +477,53 @@ function LifeEventCard({
 					<span className="text-slate-300 italic">forever</span>
 				)}
 			</div>
+		</div>
+	);
+}
+
+function RESPEditor({
+	resp,
+	onUpdate,
+}: {
+	resp: RESPAccount;
+	onUpdate: (updates: Partial<RESPAccount>) => void;
+}) {
+	return (
+		<div className="space-y-2">
+			<Field label="Balance">
+				<CurrencyField
+					value={resp.balance}
+					onValueChange={(v) => onUpdate({ balance: v ? Number.parseFloat(v) : 0 })}
+				/>
+			</Field>
+			<Field label="Annual contribution">
+				<CurrencyField
+					value={resp.annualContribution ?? 0}
+					onValueChange={(v) => onUpdate({ annualContribution: v ? Number.parseFloat(v) : 0 })}
+				/>
+			</Field>
+			<Field label="Contributions to date">
+				<CurrencyField
+					value={resp.contributions}
+					onValueChange={(v) => onUpdate({ contributions: v ? Number.parseFloat(v) : 0 })}
+				/>
+			</Field>
+			<Field label="CESG received">
+				<CurrencyField
+					value={resp.cesgReceived}
+					onValueChange={(v) => onUpdate({ cesgReceived: v ? Number.parseFloat(v) : 0 })}
+				/>
+			</Field>
+			<Field label="Beneficiary age">
+				<input
+					type="number"
+					min={0}
+					max={35}
+					value={resp.beneficiaryAge}
+					onChange={(e) => onUpdate({ beneficiaryAge: Number.parseInt(e.target.value) || 0 })}
+					className="field-input"
+				/>
+			</Field>
 		</div>
 	);
 }

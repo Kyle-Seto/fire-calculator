@@ -1,13 +1,20 @@
 // ── Enums ──
 
-export const AccountType = {
+export const AssetType = {
   TFSA: "TFSA",
   RRSP: "RRSP",
+  FHSA: "FHSA",
   NonRegistered: "NonRegistered",
   Cash: "Cash",
+  Property: "Property",
+  Vehicle: "Vehicle",
+  Other: "Other",
 } as const;
 
-export type AccountType = (typeof AccountType)[keyof typeof AccountType];
+export type AssetType = (typeof AssetType)[keyof typeof AssetType];
+
+/** Asset types that count toward the investable portfolio (used for FIRE calc). */
+export const INVESTABLE_TYPES: AssetType[] = ["TFSA", "RRSP", "FHSA", "NonRegistered", "Cash"];
 
 export const FireType = {
   Lean: "Lean",
@@ -30,10 +37,17 @@ export type LifeEvent = {
   endDate?: string;  // "YYYY-MM" format, undefined = permanent
 };
 
-export type Account = {
-  type: AccountType;
+export type Asset = {
+  id: string;
+  label: string;
+  type: AssetType;
+  value: number;
+};
+
+export type Liability = {
+  id: string;
+  label: string;
   balance: number;
-  contributionRoom?: number;
 };
 
 export type Persona = {
@@ -44,13 +58,12 @@ export type Persona = {
   age: number;
   annualIncome: number;
   monthlySpending: number;
-  accounts: Account[];
+  assets: Asset[];
+  liabilities: Liability[];
   housing: {
     type: "rent" | "own";
     monthlyAmount: number;
-    mortgageRemaining?: number;
   };
-  debt: number;
   lifeEvents?: LifeEvent[];
   sourceUrl?: string;
   retirementStatus: "accumulating" | "retired";
@@ -61,6 +74,15 @@ export type Persona = {
     age: number;
     annualIncome: number;
   };
+  resp?: RESPAccount;
+};
+
+export type RESPAccount = {
+  balance: number;
+  contributions: number;
+  cesgReceived: number;
+  beneficiaryAge: number;
+  annualContribution?: number;
 };
 
 export type PersonaTemplate = Persona;
@@ -89,6 +111,9 @@ export type FireResults = {
   monthlyExpenses: number;
   annualExpenses: number;
   portfolioTotal: number;
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
   fireProgress: number;
   fireType: FireType;
   monteCarloResults: MonteCarloResults | null;

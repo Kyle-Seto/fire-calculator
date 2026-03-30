@@ -2,6 +2,12 @@ import type { Persona, FireResults } from "@/types";
 import { calculateOptimalRRSPContribution } from "@/engine/tax";
 import { calculateYearsToFI } from "@/engine/fire";
 import { DEFAULTS } from "@/data/constants";
+import {
+  FHSA_LIFETIME_LIMIT,
+  CESG_ANNUAL_MAX,
+  CESG_LIFETIME_MAX,
+  RESP_OPTIMAL_ANNUAL,
+} from "@/data/taxBrackets";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 
 export type Recommendation = {
@@ -16,13 +22,13 @@ export type Recommendation = {
 const TFSA_CUMULATIVE_LIMIT = 95_000;
 
 function getTFSABalance(persona: Persona): number {
-  const tfsa = persona.accounts.find((a) => a.type === "TFSA");
-  return tfsa?.balance ?? 0;
+  const tfsa = persona.assets.find((a) => a.type === "TFSA");
+  return tfsa?.value ?? 0;
 }
 
 function getNonRegisteredBalance(persona: Persona): number {
-  const nr = persona.accounts.find((a) => a.type === "NonRegistered");
-  return nr?.balance ?? 0;
+  const nr = persona.assets.find((a) => a.type === "NonRegistered");
+  return nr?.value ?? 0;
 }
 
 function isRetired(persona: Persona): boolean {
@@ -237,6 +243,44 @@ function ruleReduceSpendingImpact(
   };
 }
 
+function ruleFHSARoom(persona: Persona): Recommendation | null {
+  if (isRetired(persona)) return null;
+  const fhsa = persona.assets.find((a) => a.type === "FHSA");
+  if (!fhsa) return null;
+  if (fhsa.value >= FHSA_LIFETIME_LIMIT) return null;
+
+  const room = FHSA_LIFETIME_LIMIT - fhsa.value;
+
+  return {
+    id: "fhsa-room",
+    title: "Max Out Your FHSA",
+    description: `Your FHSA has ~${formatCurrency(room)} of room. Contributions are tax-deductible and growth is tax-free — the best of RRSP and TFSA combined.`,
+    impact: "Tax-deductible contributions with tax-free growth",
+    priority: 2,
+    category: "tax",
+  };
+}
+
+function ruleRESPOptimization(persona: Persona): Recommendation | null {
+  if (isRetired(persona)) return null;
+  if (!persona.resp) return null;
+
+  const { cesgReceived, annualContribution } = persona.resp;
+  if (cesgReceived >= CESG_LIFETIME_MAX) return null;
+  if ((annualContribution ?? 0) >= RESP_OPTIMAL_ANNUAL) return null;
+
+  const potentialGrant = Math.min(CESG_ANNUAL_MAX, CESG_LIFETIME_MAX - cesgReceived);
+
+  return {
+    id: "resp-cesg-optimization",
+    title: "Maximize RESP Grants",
+    description: `Contributing $2,500/yr to your RESP earns ${formatCurrency(potentialGrant)} in free CESG grants this year.`,
+    impact: `${formatCurrency(potentialGrant)}/yr in government matching`,
+    priority: 3,
+    category: "savings",
+  };
+}
+
 export function generateRecommendations(
   persona: Persona,
   results: FireResults,
@@ -251,6 +295,8 @@ export function generateRecommendations(
     ruleSequenceOfReturnsWarning(persona, results),
     ruleNonRegisteredTaxEfficiency(persona),
     ruleReduceSpendingImpact(persona, results),
+    ruleFHSARoom(persona),
+    ruleRESPOptimization(persona),
   ];
 
   return all

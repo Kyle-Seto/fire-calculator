@@ -9,20 +9,37 @@ import {
   calculatePortfolioTotal,
   calculateAllResults,
 } from "@/engine/fire";
-import type { Account, Persona } from "@/types";
+import type { Asset, Persona } from "@/types";
 
 describe("calculatePortfolioTotal", () => {
-  it("sums all account balances", () => {
-    const accounts: Account[] = [
-      { type: "TFSA", balance: 50_000 },
-      { type: "RRSP", balance: 100_000 },
-      { type: "Cash", balance: 10_000 },
+  it("sums investable asset values", () => {
+    const assets: Asset[] = [
+      { id: "1", label: "TFSA", type: "TFSA", value: 50_000 },
+      { id: "2", label: "RRSP", type: "RRSP", value: 100_000 },
+      { id: "3", label: "Cash", type: "Cash", value: 10_000 },
     ];
-    expect(calculatePortfolioTotal(accounts)).toBe(160_000);
+    expect(calculatePortfolioTotal(assets)).toBe(160_000);
   });
 
-  it("returns 0 for empty accounts", () => {
+  it("returns 0 for empty assets", () => {
     expect(calculatePortfolioTotal([])).toBe(0);
+  });
+
+  it("includes FHSA in portfolio total", () => {
+    const assets: Asset[] = [
+      { id: "1", label: "TFSA", type: "TFSA", value: 50_000 },
+      { id: "2", label: "FHSA", type: "FHSA", value: 30_000 },
+    ];
+    expect(calculatePortfolioTotal(assets)).toBe(80_000);
+  });
+
+  it("excludes non-investable types", () => {
+    const assets: Asset[] = [
+      { id: "1", label: "TFSA", type: "TFSA", value: 50_000 },
+      { id: "2", label: "House", type: "Property", value: 500_000 },
+      { id: "3", label: "Car", type: "Vehicle", value: 30_000 },
+    ];
+    expect(calculatePortfolioTotal(assets)).toBe(50_000);
   });
 });
 
@@ -165,12 +182,12 @@ describe("calculateAllResults", () => {
       age: 30,
       annualIncome: 80_000,
       monthlySpending: 2_000,
-      accounts: [
-        { type: "TFSA", balance: 50_000 },
-        { type: "RRSP", balance: 100_000 },
+      assets: [
+        { id: "1", label: "TFSA", type: "TFSA", value: 50_000 },
+        { id: "2", label: "RRSP", type: "RRSP", value: 100_000 },
       ],
+      liabilities: [],
       housing: { type: "rent", monthlyAmount: 1_500 },
-      debt: 0,
       retirementStatus: "accumulating",
     };
 
@@ -202,11 +219,11 @@ describe("calculateAllResults", () => {
       age: 65,
       annualIncome: 0,
       monthlySpending: 2_000,
-      accounts: [
-        { type: "RRSP", balance: 1_200_000 },
+      assets: [
+        { id: "1", label: "RRSP", type: "RRSP", value: 1_200_000 },
       ],
+      liabilities: [],
       housing: { type: "own", monthlyAmount: 500 },
-      debt: 0,
       retirementStatus: "retired",
     };
 

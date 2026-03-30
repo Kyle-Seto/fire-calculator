@@ -1,4 +1,4 @@
-import type { Account, AccountType } from "@/types";
+import type { Asset, AssetType } from "@/types";
 import {
   FEDERAL_BRACKETS,
   ONTARIO_BRACKETS,
@@ -87,13 +87,14 @@ export function calculateMarginalRate(income: number): number {
  */
 export function calculateTaxOnWithdrawal(
   amount: number,
-  accountType: AccountType,
+  accountType: AssetType,
   otherIncome: number,
 ): number {
   if (amount <= 0) return 0;
 
   switch (accountType) {
     case "TFSA":
+    case "FHSA":
       return 0;
 
     case "RRSP": {
@@ -126,33 +127,32 @@ export function calculateTaxOnWithdrawal(
  * - NonRegistered: balance minus tax on assumed gains (50% of balance is gains)
  * - Cash: full balance
  */
-export function calculateAfterTaxPortfolioValue(accounts: Account[]): number {
-  return accounts.reduce((total, account) => {
-    switch (account.type) {
+export function calculateAfterTaxPortfolioValue(assets: Asset[]): number {
+  return assets.reduce((total, asset) => {
+    switch (asset.type) {
       case "TFSA":
-        return total + account.balance;
+      case "FHSA":
+        return total + asset.value;
 
       case "RRSP": {
-        // Estimate average tax rate by computing tax on the full balance as income
-        const taxOnFull = calculateTotalTax(account.balance);
+        const taxOnFull = calculateTotalTax(asset.value);
         const avgTaxRate =
-          account.balance > 0 ? taxOnFull / account.balance : 0;
-        return total + account.balance * (1 - avgTaxRate);
+          asset.value > 0 ? taxOnFull / asset.value : 0;
+        return total + asset.value * (1 - avgTaxRate);
       }
 
       case "NonRegistered": {
-        // Assume 50% of balance is capital gains
-        const assumedGains = account.balance * 0.5;
+        const assumedGains = asset.value * 0.5;
         const taxableGains = assumedGains * CAPITAL_GAINS_INCLUSION_RATE;
         const tax = calculateTotalTax(taxableGains);
-        return total + account.balance - tax;
+        return total + asset.value - tax;
       }
 
       case "Cash":
-        return total + account.balance;
+        return total + asset.value;
 
       default:
-        return total + account.balance;
+        return total + asset.value;
     }
   }, 0);
 }

@@ -58,6 +58,9 @@ export function WithdrawalStrategy() {
 								<th className="px-4 py-3 text-right font-medium text-amber-500 uppercase tracking-wider">
 									Non-Reg
 								</th>
+								<th className="px-4 py-3 text-right font-medium text-pink-500 uppercase tracking-wider">
+									FHSA
+								</th>
 								<th className="px-4 py-3 text-right font-medium text-slate-400 uppercase tracking-wider">
 									Tax
 								</th>
@@ -93,6 +96,9 @@ export function WithdrawalStrategy() {
 									<td className="px-4 py-2.5 text-right tabular-nums text-amber-600">
 										{row.nonRegWithdrawal > 0 ? formatCurrency(row.nonRegWithdrawal) : "—"}
 									</td>
+									<td className="px-4 py-2.5 text-right tabular-nums text-pink-600">
+										{row.fhsaWithdrawal > 0 ? formatCurrency(row.fhsaWithdrawal) : "—"}
+									</td>
 									<td className="px-4 py-2.5 text-right tabular-nums text-red-400">
 										{row.taxOwed > 0 ? formatCurrency(row.taxOwed) : "—"}
 									</td>
@@ -110,7 +116,7 @@ export function WithdrawalStrategy() {
 			</div>
 
 			<p className="text-xs text-slate-400 leading-relaxed">
-				Optimal order: Non-registered first, RRSP meltdown second, TFSA last. Assumes 7% real return.
+				Optimal order: Non-registered first, RRSP meltdown second, TFSA third, FHSA last. Assumes 7% real return.
 			</p>
 		</div>
 	);

@@ -12,12 +12,14 @@ export type WithdrawalPlan = {
   tfsaWithdrawal: number;
   rrspWithdrawal: number;
   nonRegWithdrawal: number;
+  fhsaWithdrawal: number;
   totalWithdrawal: number;
   taxOwed: number;
   afterTaxIncome: number;
   tfsaBalance: number;
   rrspBalance: number;
   nonRegBalance: number;
+  fhsaBalance: number;
   totalBalance: number;
 };
 
@@ -32,8 +34,8 @@ export type YieldShieldStatus = {
 
 // ── Helpers ──
 
-function getAccountBalance(persona: Persona, type: string): number {
-  return persona.accounts.find((a) => a.type === type)?.balance ?? 0;
+function getAssetBalance(persona: Persona, type: string): number {
+  return persona.assets.find((a) => a.type === type)?.value ?? 0;
 }
 
 // ── Core Functions ──
@@ -44,7 +46,8 @@ function getAccountBalance(persona: Persona, type: string): number {
  * Withdrawal order (tax-optimized):
  *   1. Non-registered first — only capital gains portion is taxed
  *   2. RRSP meltdown — fill lowest tax brackets
- *   3. TFSA last — completely tax-free, no forced withdrawals
+ *   3. TFSA — completely tax-free, no forced withdrawals
+ *   4. FHSA last — special-purpose, preserve for home purchase or RRSP transfer
  *
  * Each year: withdraw needed amount, apply growth to remaining balances,
  * calculate tax on withdrawals.
@@ -57,9 +60,10 @@ export function generateWithdrawalPlan(
   const hasEvents = (persona.lifeEvents ?? []).length > 0;
   const growthRate = DEFAULTS.realReturnMean;
 
-  let tfsaBal = getAccountBalance(persona, "TFSA");
-  let rrspBal = getAccountBalance(persona, "RRSP");
-  let nonRegBal = getAccountBalance(persona, "NonRegistered");
+  let tfsaBal = getAssetBalance(persona, "TFSA");
+  let rrspBal = getAssetBalance(persona, "RRSP");
+  let nonRegBal = getAssetBalance(persona, "NonRegistered");
+  let fhsaBal = getAssetBalance(persona, "FHSA");
 
   const plan: WithdrawalPlan[] = [];
 
@@ -79,6 +83,7 @@ export function generateWithdrawalPlan(
     let nonRegW = 0;
     let rrspW = 0;
     let tfsaW = 0;
+    let fhsaW = 0;
 
     // Step 1: Non-registered (only gains taxed at 50% inclusion)
     if (remaining > 0 && nonRegBal > 0) {
@@ -101,15 +106,20 @@ export function generateWithdrawalPlan(
       remaining -= tfsaW;
     }
 
-    const totalWithdrawal = nonRegW + rrspW + tfsaW;
+    // Step 4: FHSA (special-purpose, withdraw last)
+    if (remaining > 0 && fhsaBal > 0) {
+      fhsaW = Math.min(remaining, fhsaBal);
+      fhsaBal -= fhsaW;
+      remaining -= fhsaW;
+    }
+
+    const totalWithdrawal = nonRegW + rrspW + tfsaW + fhsaW;
 
     // Calculate tax: RRSP is taxable income, non-reg has partial gains tax
     let taxOwed = 0;
-    // Tax on RRSP withdrawal (treated as income)
     taxOwed += calculateTaxOnWithdrawal(rrspW, "RRSP", 0);
-    // Tax on non-reg withdrawal (only gains portion taxed, on top of RRSP income)
     taxOwed += calculateTaxOnWithdrawal(nonRegW, "NonRegistered", rrspW);
-    // TFSA: $0 tax
+    // TFSA and FHSA: $0 tax
 
     const afterTaxIncome = totalWithdrawal - taxOwed;
 
@@ -117,6 +127,7 @@ export function generateWithdrawalPlan(
     tfsaBal *= 1 + growthRate;
     rrspBal *= 1 + growthRate;
     nonRegBal *= 1 + growthRate;
+    fhsaBal *= 1 + growthRate;
 
     plan.push({
       year,
@@ -124,13 +135,15 @@ export function generateWithdrawalPlan(
       tfsaWithdrawal: tfsaW,
       rrspWithdrawal: rrspW,
       nonRegWithdrawal: nonRegW,
+      fhsaWithdrawal: fhsaW,
       totalWithdrawal,
       taxOwed,
       afterTaxIncome,
       tfsaBalance: tfsaBal,
       rrspBalance: rrspBal,
       nonRegBalance: nonRegBal,
-      totalBalance: tfsaBal + rrspBal + nonRegBal,
+      fhsaBalance: fhsaBal,
+      totalBalance: tfsaBal + rrspBal + nonRegBal + fhsaBal,
     });
   }
 
@@ -151,7 +164,7 @@ export function calculateYieldShield(
     return null;
   }
 
-  const portfolioTotal = calculatePortfolioTotal(persona.accounts);
+  const portfolioTotal = calculatePortfolioTotal(persona.assets);
   const annualExpenses = calculateAnnualExpenses(persona);
   const annualYieldIncome = portfolioTotal * (persona.portfolioYield / 100);
   const gapAmount = Math.max(0, annualExpenses - annualYieldIncome);

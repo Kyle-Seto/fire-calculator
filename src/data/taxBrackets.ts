@@ -32,3 +32,14 @@ export const RRSP_ANNUAL_LIMIT = 32490; // 2025 limit
 
 // Capital gains inclusion rate
 export const CAPITAL_GAINS_INCLUSION_RATE = 0.5; // First $250K at 50%
+
+// FHSA
+export const FHSA_ANNUAL_LIMIT = 8_000;
+export const FHSA_LIFETIME_LIMIT = 40_000;
+
+// RESP
+export const RESP_LIFETIME_LIMIT = 50_000;
+export const RESP_OPTIMAL_ANNUAL = 2_500;
+export const CESG_RATE = 0.20;
+export const CESG_ANNUAL_MAX = 500;
+export const CESG_LIFETIME_MAX = 7_200;

@@ -7,42 +7,39 @@ import {
 	ResponsiveContainer,
 } from "recharts";
 
-import type { Account } from "@/types";
+import type { Asset } from "@/types";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 
 type AccountBreakdownProps = {
-	accounts: Account[];
+	assets: Asset[];
 	portfolioTotal: number;
 };
 
-const ACCOUNT_COLORS: Record<string, string> = {
+const ASSET_COLORS: Record<string, string> = {
 	TFSA: "#8b5cf6",
 	RRSP: "#06b6d4",
+	FHSA: "#ec4899",
 	NonRegistered: "#f59e0b",
 	Cash: "#6b7280",
-};
-
-const ACCOUNT_LABELS: Record<string, string> = {
-	TFSA: "TFSA",
-	RRSP: "RRSP",
-	NonRegistered: "Non-Registered",
-	Cash: "Cash",
+	Property: "#10b981",
+	Vehicle: "#3b82f6",
+	Other: "#f43f5e",
 };
 
 export function AccountBreakdown({
-	accounts,
+	assets,
 	portfolioTotal,
 }: AccountBreakdownProps) {
 	const chartData = useMemo(() => {
-		return accounts
-			.filter((a) => a.balance > 0)
+		return assets
+			.filter((a) => a.value > 0)
 			.map((a) => ({
-				name: ACCOUNT_LABELS[a.type] ?? a.type,
-				value: a.balance,
-				color: ACCOUNT_COLORS[a.type] ?? "#94a3b8",
-				pct: portfolioTotal > 0 ? (a.balance / portfolioTotal) * 100 : 0,
+				name: a.label || a.type,
+				value: a.value,
+				color: ASSET_COLORS[a.type] ?? "#94a3b8",
+				pct: portfolioTotal > 0 ? (a.value / portfolioTotal) * 100 : 0,
 			}));
-	}, [accounts, portfolioTotal]);
+	}, [assets, portfolioTotal]);
 
 	if (chartData.length === 0) return null;
 
@@ -78,7 +75,6 @@ export function AccountBreakdown({
 					</PieChart>
 				</ResponsiveContainer>
 
-				{/* Center label */}
 				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
 					<div className="text-center">
 						<p className="text-xs text-slate-400 uppercase tracking-wider">Total</p>
@@ -89,7 +85,6 @@ export function AccountBreakdown({
 				</div>
 			</div>
 
-			{/* Legend */}
 			<div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
 				{chartData.map((entry) => (
 					<div key={entry.name} className="flex items-center gap-1.5">

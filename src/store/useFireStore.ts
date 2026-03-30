@@ -60,13 +60,13 @@ export const useFireStore = create<FireState & FireActions>()(
     }),
     {
       name: "fire-copilot-store",
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         persona: state.persona,
         activePersonaId: state.activePersonaId,
       }),
       migrate: (persistedState, version) => {
-        if (version === undefined || version < 2) {
+        if (version === undefined || version < 3) {
           return {
             persona: defaultPersona,
             activePersonaId: defaultPersona.id,
