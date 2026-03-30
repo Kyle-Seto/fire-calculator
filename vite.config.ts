@@ -11,8 +11,4 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src"),
 		},
 	},
-	test: {
-		include: ["src/**/*.{test,spec}.{ts,tsx}"],
-		exclude: [".trunk/**", "node_modules/**"],
-	},
 });
