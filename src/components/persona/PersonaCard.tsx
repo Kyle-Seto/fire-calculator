@@ -1,5 +1,7 @@
 import type { PersonaTemplate } from "@/types";
+import { calculatePortfolioTotal, calculateSavingsRate, calculateAnnualExpenses } from "@/engine/fire";
 import { formatCurrency, formatPercent } from "@/lib/utils";
+import { ExternalLink } from "lucide-react";
 
 type PersonaCardProps = {
 	persona: PersonaTemplate;
@@ -7,27 +9,21 @@ type PersonaCardProps = {
 };
 
 const ACCENT_COLORS: Record<string, string> = {
-	"early-career": "bg-emerald-500",
-	"mid-career": "bg-blue-500",
-	"almost-there": "bg-amber-500",
-	"just-fired": "bg-violet-500",
+	"mr-student-investor": "bg-rose-500",
+	"mr-retire-or-boat": "bg-teal-500",
+	"mr-retiring-with-debt": "bg-orange-500",
 };
 
 const ACCENT_TEXT: Record<string, string> = {
-	"early-career": "text-emerald-600",
-	"mid-career": "text-blue-600",
-	"almost-there": "text-amber-600",
-	"just-fired": "text-violet-600",
+	"mr-student-investor": "text-rose-600",
+	"mr-retire-or-boat": "text-teal-600",
+	"mr-retiring-with-debt": "text-orange-600",
 };
 
 function computeStats(persona: PersonaTemplate) {
-	const totalSavings = persona.accounts.reduce((s, a) => s + a.balance, 0);
-	const monthlyExpenses = persona.monthlySpending + persona.housing.monthlyAmount;
-	const annualExpenses = monthlyExpenses * 12;
-	const savingsRate =
-		persona.annualIncome > 0
-			? ((persona.annualIncome - annualExpenses) / persona.annualIncome) * 100
-			: null;
+	const totalSavings = calculatePortfolioTotal(persona.accounts);
+	const annualExpenses = calculateAnnualExpenses(persona);
+	const savingsRate = calculateSavingsRate(persona.annualIncome, annualExpenses);
 	return { totalSavings, savingsRate };
 }
 
@@ -63,7 +59,21 @@ export function PersonaCard({ persona, onSelect }: PersonaCardProps) {
 					)}
 				</div>
 
-				<p className="text-sm text-slate-600 leading-relaxed">{persona.description}</p>
+				<div className="space-y-1.5">
+					<p className="text-sm text-slate-600 leading-relaxed">{persona.description}</p>
+					{persona.sourceUrl && (
+						<a
+							href={persona.sourceUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							onClick={(e) => e.stopPropagation()}
+							className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+						>
+							<ExternalLink className="w-3 h-3" />
+							Source
+						</a>
+					)}
+				</div>
 
 				<div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
 					<Stat

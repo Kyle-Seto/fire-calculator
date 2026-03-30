@@ -42,6 +42,7 @@ export type Persona = {
     mortgageRemaining?: number;
   };
   debt: number;
+  sourceUrl?: string;
   retirementStatus: "accumulating" | "retired";
   withdrawalStrategy?: string;
   cashCushion?: number;

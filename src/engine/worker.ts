@@ -9,7 +9,7 @@ const api = {
   calculate(persona: Persona): FireResults {
     const baseResults = calculateAllResults(persona);
 
-    const isRetired = persona.retirementStatus === "retired";
+    const isRetired = persona.retirementStatus === "retired" || baseResults.fireProgress >= 100;
     const annualExpenses = baseResults.annualExpenses;
     const annualIncome = persona.annualIncome;
 

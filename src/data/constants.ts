@@ -11,5 +11,4 @@ export const DEFAULTS = {
 export const FIRE_THRESHOLDS = {
   lean: 40_000, // < $40K
   traditional: 100_000, // $40K - $100K
-  fat: 100_000, // >= $100K
 } as const;

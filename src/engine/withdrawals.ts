@@ -1,10 +1,7 @@
 import type { Persona } from "@/types";
 import { DEFAULTS } from "@/data/constants";
-import {
-  FEDERAL_BRACKETS,
-  ONTARIO_BRACKETS,
-} from "@/data/taxBrackets";
 import { calculateTaxOnWithdrawal } from "@/engine/tax";
+import { calculatePortfolioTotal, calculateAnnualExpenses } from "@/engine/fire";
 
 // ── Types ──
 
@@ -38,19 +35,6 @@ function getAccountBalance(persona: Persona, type: string): number {
   return persona.accounts.find((a) => a.type === type)?.balance ?? 0;
 }
 
-/**
- * The room available in the lowest combined federal + provincial brackets
- * above the personal amounts. Used for RRSP meltdown optimization.
- */
-function lowestBracketCeiling(): number {
-  // Federal lowest bracket ceiling
-  const fedCeiling = FEDERAL_BRACKETS[0].max;
-  // Ontario lowest bracket ceiling
-  const ontCeiling = ONTARIO_BRACKETS[0].max;
-  // Use the smaller of the two so we stay in the lowest bracket for both
-  return Math.min(fedCeiling, ontCeiling);
-}
-
 // ── Core Functions ──
 
 /**
@@ -68,8 +52,7 @@ export function generateWithdrawalPlan(
   persona: Persona,
   years: number = 30,
 ): WithdrawalPlan[] {
-  const annualExpenses =
-    (persona.monthlySpending + persona.housing.monthlyAmount) * 12;
+  const annualExpenses = calculateAnnualExpenses(persona);
   const growthRate = DEFAULTS.realReturnMean;
 
   let tfsaBal = getAccountBalance(persona, "TFSA");
@@ -158,12 +141,8 @@ export function calculateYieldShield(
     return null;
   }
 
-  const portfolioTotal = persona.accounts.reduce(
-    (sum, a) => sum + a.balance,
-    0,
-  );
-  const annualExpenses =
-    (persona.monthlySpending + persona.housing.monthlyAmount) * 12;
+  const portfolioTotal = calculatePortfolioTotal(persona.accounts);
+  const annualExpenses = calculateAnnualExpenses(persona);
   const annualYieldIncome = portfolioTotal * (persona.portfolioYield / 100);
   const gapAmount = Math.max(0, annualExpenses - annualYieldIncome);
   const cashCushion = persona.cashCushion ?? 0;
@@ -182,79 +161,3 @@ export function calculateYieldShield(
   };
 }
 
-/**
- * Calculate how much RRSP to convert to fill the lowest tax bracket.
- * Useful for RRSP meltdown strategy in early retirement.
- */
-export function calculateBracketFilling(
-  rrspBalance: number,
-  currentIncome: number,
-): {
-  optimalConversion: number;
-  taxOnConversion: number;
-  bracketRoom: number;
-} {
-  const ceiling = lowestBracketCeiling();
-  // Room in the lowest bracket above current income
-  const bracketRoom = Math.max(0, ceiling - currentIncome);
-  // Don't convert more than available
-  const optimalConversion = Math.min(bracketRoom, rrspBalance);
-  // Tax on this conversion (on top of current income)
-  const taxOnConversion = calculateTaxOnWithdrawal(
-    optimalConversion,
-    "RRSP",
-    currentIncome,
-  );
-
-  return { optimalConversion, taxOnConversion, bracketRoom };
-}
-
-/**
- * Simulate a specific crash scenario to test sequence-of-returns risk.
- * Shows portfolio balance year by year over the simulation period.
- */
-export function simulateSequenceOfReturns(
-  persona: Persona,
-  crashYear: number = 1,
-  crashMagnitude: number = -0.4,
-): {
-  yearByYear: { year: number; balance: number }[];
-  survived: boolean;
-} {
-  const portfolioTotal = persona.accounts.reduce(
-    (sum, a) => sum + a.balance,
-    0,
-  );
-  const annualExpenses =
-    (persona.monthlySpending + persona.housing.monthlyAmount) * 12;
-  const normalReturn = DEFAULTS.realReturnMean;
-  const simYears = 30;
-
-  let balance = portfolioTotal;
-  const yearByYear: { year: number; balance: number }[] = [];
-  let survived = true;
-
-  for (let i = 1; i <= simYears; i++) {
-    // Withdraw expenses at the start of the year
-    balance -= annualExpenses;
-
-    if (balance <= 0) {
-      yearByYear.push({ year: i, balance: 0 });
-      survived = false;
-      // Fill remaining years with 0
-      for (let j = i + 1; j <= simYears; j++) {
-        yearByYear.push({ year: j, balance: 0 });
-      }
-      break;
-    }
-
-    // Apply return for the year
-    const returnRate = i === crashYear ? crashMagnitude : normalReturn;
-    balance *= 1 + returnRate;
-    balance = Math.max(0, balance);
-
-    yearByYear.push({ year: i, balance });
-  }
-
-  return { yearByYear, survived };
-}

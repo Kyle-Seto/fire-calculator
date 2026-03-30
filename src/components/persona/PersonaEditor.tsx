@@ -7,6 +7,13 @@ type PersonaEditorProps = {
 	onBack: () => void;
 };
 
+const ACCOUNT_LABELS: Record<string, { label: string; color: string }> = {
+	TFSA: { label: "TFSA", color: "bg-violet-500" },
+	RRSP: { label: "RRSP", color: "bg-cyan-500" },
+	NonRegistered: { label: "Non-Registered", color: "bg-amber-500" },
+	Cash: { label: "Cash", color: "bg-slate-400" },
+};
+
 export function PersonaEditor({ onBack }: PersonaEditorProps) {
 	const persona = useFireStore((s) => s.persona);
 	const updatePersona = useFireStore((s) => s.updatePersona);
@@ -44,13 +51,6 @@ export function PersonaEditor({ onBack }: PersonaEditorProps) {
 			});
 		}
 	}
-
-	const ACCOUNT_LABELS: Record<string, { label: string; color: string }> = {
-		TFSA: { label: "TFSA", color: "bg-violet-500" },
-		RRSP: { label: "RRSP", color: "bg-cyan-500" },
-		NonRegistered: { label: "Non-Registered", color: "bg-amber-500" },
-		Cash: { label: "Cash", color: "bg-slate-400" },
-	};
 
 	return (
 		<div className="h-full flex flex-col bg-white border-r border-slate-200/80">

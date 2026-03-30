@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useFireStore } from "@/store/useFireStore";
 import { generateWithdrawalPlan } from "@/engine/withdrawals";
 import { calculateTotalTax } from "@/engine/tax";
+import { calculateAnnualExpenses } from "@/engine/fire";
 import { formatCurrency, cn } from "@/lib/utils";
 
 const DISPLAY_YEARS = 10;
@@ -15,11 +16,9 @@ export function WithdrawalStrategy() {
 	);
 
 	const taxSaved = useMemo(() => {
-		const annualExpenses =
-			(persona.monthlySpending + persona.housing.monthlyAmount) * 12;
-		const naiveTaxTotal = plan.reduce(() => {
-			return calculateTotalTax(annualExpenses);
-		}, 0);
+		const annualExpenses = calculateAnnualExpenses(persona);
+		const naiveTaxPerYear = calculateTotalTax(annualExpenses);
+		const naiveTaxTotal = naiveTaxPerYear * plan.length;
 		const optimizedTaxTotal = plan.reduce((sum, row) => sum + row.taxOwed, 0);
 		return naiveTaxTotal - optimizedTaxTotal;
 	}, [plan, persona]);

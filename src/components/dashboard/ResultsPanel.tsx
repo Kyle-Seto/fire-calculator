@@ -1,5 +1,5 @@
 import { useFireStore } from "@/store/useFireStore";
-import { formatCurrency, formatPercent, formatYears } from "@/lib/utils";
+import { formatCurrency, formatFireDate, formatPercent, formatYears } from "@/lib/utils";
 import { MetricCard, MetricSkeleton } from "./MetricCard";
 import { PortfolioFanChart } from "@/components/charts/PortfolioFanChart";
 import { SavingsRateChart } from "@/components/charts/SavingsRateChart";
@@ -10,11 +10,6 @@ import { PostFireDashboard } from "@/components/postfire/PostFireDashboard";
 import { FireTooltip } from "@/components/ui/FireTooltip";
 import { AlertCircle } from "lucide-react";
 
-function formatFireDate(date: Date | null): string {
-	if (!date) return "Keep going";
-	return date.toLocaleDateString("en-CA", { month: "long", year: "numeric" });
-}
-
 function formatFireType(type: string): string {
 	return `${type} FIRE`;
 }
@@ -24,7 +19,7 @@ export function ResultsPanel() {
 	const isCalculating = useFireStore((s) => s.isCalculating);
 	const error = useFireStore((s) => s.error);
 	const persona = useFireStore((s) => s.persona);
-	const isRetired = persona.retirementStatus === "retired";
+	const isRetired = persona.retirementStatus === "retired" || (results?.fireProgress ?? 0) >= 100;
 
 	if (error) {
 		return (

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useFireStore } from "@/store/useFireStore";
 import { generateRecommendations } from "@/engine/recommendations";
 import { RecommendationCard } from "@/components/recommendations/RecommendationCard";
@@ -6,9 +7,12 @@ export function RecommendationList() {
   const persona = useFireStore((s) => s.persona);
   const results = useFireStore((s) => s.results);
 
-  if (!results) return null;
+  const recommendations = useMemo(
+    () => (results ? generateRecommendations(persona, results) : []),
+    [persona, results],
+  );
 
-  const recommendations = generateRecommendations(persona, results);
+  if (!results) return null;
 
   if (recommendations.length === 0) {
     return (

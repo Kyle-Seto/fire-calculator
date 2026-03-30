@@ -22,3 +22,14 @@ export function formatYears(years: number): string {
 	if (!Number.isFinite(years)) return "N/A";
 	return `${years.toFixed(1)} years`;
 }
+
+export function formatFireDate(
+	date: Date | null,
+	opts?: { short?: boolean; fallback?: string },
+): string {
+	if (!date) return opts?.fallback ?? "Keep going";
+	return date.toLocaleDateString("en-CA", {
+		month: opts?.short ? "short" : "long",
+		year: "numeric",
+	});
+}

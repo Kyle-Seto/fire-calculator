@@ -27,10 +27,7 @@ export function MetricCard({
 			)}
 		>
 			<p
-				className={cn(
-					"text-xs uppercase tracking-wider font-medium",
-					variant === "hero" ? "text-slate-400" : "text-slate-400",
-				)}
+				className="text-xs uppercase tracking-wider font-medium text-slate-400"
 			>
 				{label}
 			</p>
@@ -47,8 +44,8 @@ export function MetricCard({
 			{subtitle && (
 				<p
 					className={cn(
-						"text-xs",
-						variant === "hero" ? "text-slate-400 mt-1" : "text-slate-400",
+						"text-xs text-slate-400",
+						variant === "hero" && "mt-1",
 					)}
 				>
 					{subtitle}

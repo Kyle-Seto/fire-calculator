@@ -141,8 +141,9 @@ export function evaluateScenario(
   scenario: Scenario,
   persona: Persona,
   withdrawalRate: number = DEFAULTS.withdrawalRate,
+  precomputedBase?: Omit<import("@/types").FireResults, "monteCarloResults">,
 ): ScenarioResult {
-  const original = calculateAllResults(persona, withdrawalRate);
+  const original = precomputedBase ?? calculateAllResults(persona, withdrawalRate);
   const modified = scenario.apply(persona);
   const newResults = calculateAllResults(modified, withdrawalRate);
 
@@ -174,7 +175,8 @@ export function evaluateAllScenarios(
   persona: Persona,
   withdrawalRate: number = DEFAULTS.withdrawalRate,
 ): ScenarioResult[] {
+  const base = calculateAllResults(persona, withdrawalRate);
   return SCENARIOS.map((scenario) =>
-    evaluateScenario(scenario, persona, withdrawalRate),
+    evaluateScenario(scenario, persona, withdrawalRate, base),
   ).sort((a, b) => a.deltaMonths - b.deltaMonths);
 }

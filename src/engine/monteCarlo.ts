@@ -53,18 +53,13 @@ function generateReturn(
   return Math.exp(muLog - 0.5 * sigmaLog * sigmaLog + sigmaLog * z) - 1;
 }
 
-function getPercentile(values: number[], percentile: number): number {
-  const sorted = [...values].sort((a, b) => a - b);
+function getPercentileFromSorted(sorted: number[], percentile: number): number {
   const index = (percentile / 100) * (sorted.length - 1);
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
   if (lower === upper) return sorted[lower];
   const fraction = index - lower;
   return sorted[lower] * (1 - fraction) + sorted[upper] * fraction;
-}
-
-function getMedian(values: number[]): number {
-  return getPercentile(values, 50);
 }
 
 export function runMonteCarloSimulation(
@@ -127,7 +122,7 @@ export function runMonteCarloSimulation(
     yearsToFIPerRun.push(yearReachedFI);
   }
 
-  // Compute percentiles at each year
+  // Compute percentiles at each year (sort once per year, extract all percentiles)
   const p10: number[] = [];
   const p25: number[] = [];
   const p50: number[] = [];
@@ -135,16 +130,17 @@ export function runMonteCarloSimulation(
   const p90: number[] = [];
 
   for (let year = 0; year < years; year++) {
-    const values = portfoliosByYear[year];
-    p10.push(getPercentile(values, 10));
-    p25.push(getPercentile(values, 25));
-    p50.push(getPercentile(values, 50));
-    p75.push(getPercentile(values, 75));
-    p90.push(getPercentile(values, 90));
+    const sorted = [...portfoliosByYear[year]].sort((a, b) => a - b);
+    p10.push(getPercentileFromSorted(sorted, 10));
+    p25.push(getPercentileFromSorted(sorted, 25));
+    p50.push(getPercentileFromSorted(sorted, 50));
+    p75.push(getPercentileFromSorted(sorted, 75));
+    p90.push(getPercentileFromSorted(sorted, 90));
   }
 
+  const sortedYearsToFI = [...yearsToFIPerRun].sort((a, b) => a - b);
   const medianYearsToFI =
-    mode === "accumulating" ? getMedian(yearsToFIPerRun) : 0;
+    mode === "accumulating" ? getPercentileFromSorted(sortedYearsToFI, 50) : 0;
 
   return {
     successRate: successCount / runs,

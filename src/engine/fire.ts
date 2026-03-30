@@ -11,6 +11,10 @@ export function calculatePortfolioTotal(accounts: Account[]): number {
   return accounts.reduce((sum, account) => sum + account.balance, 0);
 }
 
+export function calculateAnnualExpenses(persona: Persona): number {
+  return (persona.monthlySpending + persona.housing.monthlyAmount) * 12;
+}
+
 export function calculateFireNumber(
   annualExpenses: number,
   withdrawalRate: number = DEFAULTS.withdrawalRate,
@@ -111,8 +115,8 @@ export function calculateAllResults(
   withdrawalRate: number = DEFAULTS.withdrawalRate,
 ): Omit<FireResults, "monteCarloResults"> {
   const portfolioTotal = calculatePortfolioTotal(persona.accounts);
-  const monthlyExpenses = persona.monthlySpending + persona.housing.monthlyAmount;
-  const annualExpenses = monthlyExpenses * 12;
+  const annualExpenses = calculateAnnualExpenses(persona);
+  const monthlyExpenses = annualExpenses / 12;
   const monthlyIncome = persona.annualIncome / 12;
   const annualIncome = persona.annualIncome;
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useFireStore } from "@/store/useFireStore";
 import { evaluateAllScenarios } from "@/engine/scenarios";
 import type { ScenarioResult } from "@/engine/scenarios";
-import { cn } from "@/lib/utils";
+import { cn, formatFireDate } from "@/lib/utils";
 
 function formatDelta(deltaMonths: number): string {
 	if (!Number.isFinite(deltaMonths)) {
@@ -15,11 +15,6 @@ function formatDelta(deltaMonths: number): string {
 	if (years === 0) return `${months}mo`;
 	if (months === 0) return `${years}y`;
 	return `${years}y ${months}mo`;
-}
-
-function formatFireDate(date: Date | null): string {
-	if (!date) return "—";
-	return date.toLocaleDateString("en-CA", { month: "short", year: "numeric" });
 }
 
 function ScenarioCard({
@@ -53,7 +48,7 @@ function ScenarioCard({
 
 				<div className="flex-1 min-w-0">
 					<p className="text-sm font-medium text-slate-700">{scenario.name}</p>
-					<p className="text-xs text-slate-400 mt-0.5">{formatFireDate(newFireDate)}</p>
+					<p className="text-xs text-slate-400 mt-0.5">{formatFireDate(newFireDate, { short: true, fallback: "—" })}</p>
 				</div>
 
 				<span
