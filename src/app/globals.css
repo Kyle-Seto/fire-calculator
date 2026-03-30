@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+	/* Financial status colors */
+	--color-fire-green: #22c55e;
+	--color-fire-yellow: #eab308;
+	--color-fire-red: #ef4444;
+	--color-fire-blue: #3b82f6;
+
+	/* Account type colors */
+	--color-tfsa: #8b5cf6;
+	--color-rrsp: #06b6d4;
+	--color-nonreg: #f59e0b;
+	--color-cash: #6b7280;
+
+	/* Brand */
+	--color-primary: #0f172a;
+	--color-accent: #3b82f6;
+
+	--font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+	font-family: var(--font-sans);
+	background-color: #fafafa;
+	color: #0f172a;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.field-input {
+	width: 100%;
+	padding: 0.375rem 0.625rem;
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+	color: #0f172a;
+	background-color: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.5rem;
+	outline: none;
+	transition: border-color 0.15s, box-shadow 0.15s;
+	font-variant-numeric: tabular-nums;
+}
+
+.field-input:focus {
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.field-input:hover:not(:focus) {
+	border-color: #cbd5e1;
+}
